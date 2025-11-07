@@ -1,6 +1,6 @@
 # MailMate – Sistema Inteligente de Classificação e Resposta de E-mails
 
-**Disciplina:** Interface Humano-Computador (IHC)  
+**Disciplina:** Interação Humano-Computador (IHC)  
 **Curso:** Ciência da Computação - 5º Semestre - CEUB
 
 ---
