@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label.jsx'
 import { Upload, Send, Loader2, CheckCircle,ChevronDown, ChevronUp, Clock, XCircle, Copy as CopyIcon, Sun, Moon, Mail, Menu } from 'lucide-react'
 import './App.css'
 import { Toaster, toast } from 'sonner'
-import newLogo from '@/assets/new_logo.png'
+import darkLogo from '@/assets/dark_logo.png'
+import lightLogo from '@/assets/light_logo.png'
 
 
 function App() {
@@ -21,7 +22,9 @@ function App() {
   const [history, setHistory] = useState([])            // lista de e-mails do backend
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [expandedIds, setExpandedIds] = useState(new Set()) // controle de “abrir/fechar” card
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  // const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  // API desabilitada temporariamente — usar mock/localStorage
+  const MOCK_MODE = true
   const { darkMode, toggle } = useTheme()
 
   useEffect(() => {
@@ -93,66 +96,78 @@ function App() {
   async function loadHistory() {
     try {
       setIsLoadingHistory(true)
-      const res = await fetch(`${API_URL}/emails?page=1&page_size=10`)
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err?.detail || `Erro ${res.status}`)
-      }
-      const data = await res.json()
-      setHistory(Array.isArray(data?.items) ? data.items : [])
+      // Carrega histórico do localStorage (mock)
+      const raw = localStorage.getItem('mailmate_history')
+      const items = raw ? JSON.parse(raw) : []
+      setHistory(Array.isArray(items) ? items : [])
     } catch (e) {
       console.error(e)
-      toast(e.message || "Falha ao carregar histórico", {
+      toast("Falha ao carregar histórico local", {
         duration: 3000,
         icon: <XCircle className="text-red-500" />,
       })
-      loadHistory() 
     } finally {
       setIsLoadingHistory(false)
     }
   }
 
   const callApi = async () => {
+    // Mock local: simula processamento sem chamar backend
     setIsLoading(true)
     try {
-      const fd = new FormData()
-      if (inputMethod === 'text') {
-        fd.append('conteudo', emailText)
-      } else if (uploadedFile) {
-        fd.append('file', uploadedFile)
+      // simula tempo de processamento
+      await new Promise((resolve) => setTimeout(resolve, 700))
+
+      // heurística simples para classificação
+      const classificacaoGuess = (() => {
+        const text = (inputMethod === 'text' ? emailText : (uploadedFile?.name || '')).toLowerCase()
+        if (!text.trim()) return 'Improdutivo'
+        if (text.includes('obrig') || text.includes('parab') || text.includes('sucesso') || text.includes('confirm')) return 'Produtivo'
+        return Math.random() > 0.5 ? 'Produtivo' : 'Improdutivo'
+      })()
+
+      const assunto = buildSubject(classificacaoGuess, inputMethod === 'text' ? emailText : uploadedFile?.name)
+      const resposta = `Olá,\n\nObrigado pelo contato. ${classificacaoGuess === 'Produtivo' ? 'Encaminharemos o atendimento o mais breve possível.' : 'Agradecemos sua mensagem e registramos a solicitação.'}\n\nAtenciosamente,\nEquipe AutoU`
+
+      const now = new Date().toISOString()
+      const item = {
+        id: String(Date.now()),
+        assunto,
+        classificacao: classificacaoGuess,
+        resposta,
+        conteudo: inputMethod === 'text' ? emailText : uploadedFile?.name || '',
+        created_at: now,
       }
-
-      const res = await fetch(`${API_URL}/emails/ai`, {
-        method: 'POST',
-        body: fd,
-      })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err?.detail || `Erro ${res.status}`)
-      }
-
-      // A API retorna: { id, conteudo, classificacao, resposta, created_at, ... }
-      const data = await res.json()
 
       const mapped = {
-        subject: data.assunto || buildSubject(data.classificacao, data.conteudo),
-        body: data.resposta,
-        classification: data.classificacao,
-        originalContent: inputMethod === 'text' ? emailText : uploadedFile?.name || '',
-        id: data.id,
-        createdAt: data.created_at,
+        subject: item.assunto,
+        body: item.resposta,
+        classification: item.classificacao,
+        originalContent: item.conteudo,
+        id: item.id,
+        createdAt: item.created_at,
       }
 
+      // atualiza resultado e histórico local
       setResult(mapped)
       setActiveTab('result')
-      toast("E-mail processado com sucesso!", {
+      setHistory((prev) => {
+        const next = [item, ...prev].slice(0, 10)
+        try {
+          localStorage.setItem('mailmate_history', JSON.stringify(next))
+        } catch (e) {
+          console.error('Falha ao salvar histórico local', e)
+        }
+        return next
+      })
+
+      toast("E-mail processado com sucesso (mock)!", {
         duration: 2500,
         icon: <CheckCircle className="text-green-500" />,
       })
     } catch (e) {
       console.error(e)
-      toast(e.message || "Falha ao processar com IA", {
+      toast(e.message || "Falha ao processar (mock)", {
         duration: 3000,
         icon: <XCircle className="text-red-500" />,
       })
@@ -249,8 +264,8 @@ function App() {
                 <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
                   <div className="text-center text-gray-500">
                     <img
-                      src={newLogo}
-                      alt="Logo"
+                      src={darkMode ? darkLogo : lightLogo}
+                      alt={darkMode ? "Logo (dark)" : "Logo (light)"}
                       className="w-full h-48 object-cover rounded-lg"
                     />
                   </div>
@@ -268,18 +283,21 @@ function App() {
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 ">
-                <TabsTrigger 
-                  value="submission" 
+                <TabsTrigger
+                  value="submission"
                   disabled={isLoading}
                   className="flex items-center space-x-2 cursor-pointer"
+                  style={!darkMode ? { backgroundColor: "var(--card)", color: "var(--card-foreground)" } : undefined}
                 >
                   <Upload className="w-4 h-4" />
                   <span>Submissão</span>
                 </TabsTrigger>
-                <TabsTrigger 
+
+                <TabsTrigger
                   value="result"
                   disabled={!result && !isLoading}
                   className="flex items-center space-x-2 cursor-pointer"
+                  style={!darkMode ? { backgroundColor: "var(--card)", color: "var(--card-foreground)" } : undefined}
                 >
                   <Mail className="w-4 h-4" />
                   <span>Resultado</span>
