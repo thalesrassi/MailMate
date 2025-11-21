@@ -104,54 +104,42 @@ export default function HomePage() {
   }
 
   const callApi = async () => {
-    // Mock local: simula processamento sem chamar backend
     setIsLoading(true)
     try {
-      // simula tempo de processamento
-      await new Promise((resolve) => setTimeout(resolve, 700))
+      const baseUrl = (import.meta as any).env.VITE_API_URL ?? "http://localhost:8000"
 
-      // heurística simples para classificação
-      const classificacaoGuess = (() => {
-        const text = (inputMethod === 'text' ? emailText : (uploadedFile?.name || '')).toLowerCase()
-        if (!text.trim()) return 'Improdutivo'
-        if (text.includes('obrig') || text.includes('parab') || text.includes('sucesso') || text.includes('confirm')) return 'Produtivo'
-        return Math.random() > 0.5 ? 'Produtivo' : 'Improdutivo'
-      })()
+      const form = new FormData()
 
-      const assunto = buildSubject(classificacaoGuess, inputMethod === 'text' ? emailText : uploadedFile?.name)
-      const resposta = `Olá,\n\nObrigado pelo contato. ${classificacaoGuess === 'Produtivo' ? 'Encaminharemos o atendimento o mais breve possível.' : 'Agradecemos sua mensagem e registramos a solicitação.'}\n\nAtenciosamente,\nEquipe AutoU`
-
-      const now = new Date().toISOString()
-      const item = {
-        id: String(Date.now()),
-        assunto,
-        classificacao: classificacaoGuess,
-        resposta,
-        conteudo: inputMethod === 'text' ? emailText : uploadedFile?.name || '',
-        created_at: now,
+      if (inputMethod === "text") {
+        form.append("conteudo", emailText)
+      } else if (inputMethod === "file" && uploadedFile) {
+        form.append("arquivo", uploadedFile)
       }
 
+      const res = await fetch(`${baseUrl}/emails/`, {
+        method: "POST",
+        body: form,
+      })
+
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || "Falha ao processar e-mail")
+      }
+      const data = await res.json()
+
       const mapped = {
-        subject: item.assunto,
-        body: item.resposta,
-        classification: item.classificacao,
-        originalContent: item.conteudo,
-        id: item.id,
-        createdAt: item.created_at,
+        subject: data.assunto,
+        body: data.resposta,
+        classification: data.classificacao,
+        originalContent: data.conteudo,
+        id: data.id,
+        createdAt: data.created_at,
       }
 
       // atualiza resultado e histórico local
       setResult(mapped)
       setActiveTab('result')
-      setHistory((prev) => {
-        const next = [item, ...prev].slice(0, 10)
-        try {
-          localStorage.setItem('mailmate_history', JSON.stringify(next))
-        } catch (e) {
-          console.error('Falha ao salvar histórico local', e)
-        }
-        return next
-      })
 
       toast("E-mail processado com sucesso (mock)!", {
         duration: 2500,
@@ -159,7 +147,7 @@ export default function HomePage() {
       })
     } catch (e) {
       console.error(e)
-      toast(e.message || "Falha ao processar (mock)", {
+      toast(e.message || "Erro ao enviar para API", {
         duration: 3000,
         icon: <XCircle className="text-red-500" />,
       })
@@ -226,11 +214,15 @@ export default function HomePage() {
       {/* Right Column - Tabs */}
       <div className="lg:col-span-2">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 ">
+          <TabsList className="grid w-full grid-cols-2 gap-1">
             <TabsTrigger
               value="submission"
               disabled={isLoading}
-              className="flex items-center space-x-2 cursor-pointer"
+              className={`flex items-center space-x-2 cursor-pointer transition-all ${
+                activeTab === 'submission'
+                  ? 'font-semibold rounded-md shadow-md  ring-1 ring-primary/25'
+                  : ''
+              }`}
               style={!darkMode ? { backgroundColor: "var(--card)", color: "var(--card-foreground)" } : undefined}
             >
               <Upload className="w-4 h-4" />
@@ -240,7 +232,11 @@ export default function HomePage() {
             <TabsTrigger
               value="result"
               disabled={!result && !isLoading}
-              className="flex items-center space-x-2 cursor-pointer"
+              className={`flex items-center space-x-2 cursor-pointer transition-all ${
+                activeTab === 'result'
+                  ? 'font-semibold rounded-md shadow-md ring-1 ring-primary/25'
+                  : ''
+              }`}
               style={!darkMode ? { backgroundColor: "var(--card)", color: "var(--card-foreground)" } : undefined}
             >
               <Mail className="w-4 h-4" />
@@ -356,7 +352,7 @@ export default function HomePage() {
                   <div className="space-y-6">
                     {/* Classificação */}
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">Classificação:</span>
+                      <span className="text-sm font-medium text-foreground">Categoria:</span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${
                           result.classification === 'Produtivo'

@@ -14,7 +14,7 @@ Instruções para rodar localmente:
 
 - Configurar váriaveis de ambiente com base no .env.example (Necessário possuir token da openAI)
 
-- Rodar uvicorn app:app --reload --port 8000
+- Rodar uvicorn app.main:app --reload
 
 - Acessar http://localhost:8000
 

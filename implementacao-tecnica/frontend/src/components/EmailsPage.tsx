@@ -8,10 +8,10 @@ import { toast } from 'sonner'
 
 // Mock de dados
 const mockEmails = [
-  { id: '1', assunto: 'Confirmação de Pedido #12345', categoria: 'Produtivo', score: 0.95, conteudo: 'Prezado cliente, seu pedido foi confirmado e será enviado em breve...', created_at: new Date(Date.now() - 86400000).toISOString() },
-  { id: '2', assunto: 'Dúvida sobre o produto X', categoria: 'Improdutivo', score: 0.45, conteudo: 'Gostaria de saber se o produto X tem a cor azul...', created_at: new Date(Date.now() - 172800000).toISOString() },
-  { id: '3', assunto: 'Obrigado pelo feedback!', categoria: 'Produtivo', score: 0.88, conteudo: 'Recebemos seu feedback e agradecemos a sua contribuição...', created_at: new Date(Date.now() - 259200000).toISOString() },
-  { id: '4', assunto: 'Newsletter Semanal', categoria: 'Improdutivo', score: 0.20, conteudo: 'Confira as novidades da semana no nosso blog...', created_at: new Date(Date.now() - 345600000).toISOString() },
+  { id: '1', assunto: 'Confirmação de Pedido #12345', categoria: 'Produtivo', score: 3, conteudo: 'Prezado cliente, seu pedido foi confirmado e será enviado em breve...', created_at: new Date(Date.now() - 86400000).toISOString() },
+  { id: '2', assunto: 'Dúvida sobre o produto X', categoria: 'Improdutivo', score: 1, conteudo: 'Gostaria de saber se o produto X tem a cor azul...', created_at: new Date(Date.now() - 172800000).toISOString() },
+  { id: '3', assunto: 'Obrigado pelo feedback!', categoria: 'Produtivo', score: 2, conteudo: 'Recebemos seu feedback e agradecemos a sua contribuição...', created_at: new Date(Date.now() - 259200000).toISOString() },
+  { id: '4', assunto: 'Newsletter Semanal', categoria: 'Improdutivo', score: 3, conteudo: 'Confira as novidades da semana no nosso blog...', created_at: new Date(Date.now() - 345600000).toISOString() },
 ]
 
 export default function EmailsPage() {
@@ -22,17 +22,45 @@ export default function EmailsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedIds, setExpandedIds] = useState(new Set())
 
+  const fetchScores = async () => {
+    try {
+      const baseUrl = (import.meta as any).env?.VITE_API_URL ?? ''
+      const res = await fetch(`${baseUrl}/scores/`)
+      if (!res.ok) throw new Error("Falha ao carregar scores")
+
+      const data = await res.json()
+      return data.items   // array de { id, classificacao, created_at }
+    } catch (err) {
+      toast.error("Erro ao carregar scores do backend")
+      return []
+    }
+  }
+
   useEffect(() => {
-    fetchEmails()
+    fetchAll()
   }, [])
 
-  const fetchEmails = async () => {
-    setIsLoading(true)
-    // Simulação de chamada de API (GET /emails)
-    await new Promise(resolve => setTimeout(resolve, 500))
-    setEmails(mockEmails)
-    setIsLoading(false)
-  }
+const fetchAll = async () => {
+  setIsLoading(true)
+
+  // 1) buscar emails (por enquanto mock)
+  const emailList = mockEmails
+
+  // 2) buscar scores verdadeiros
+  const scores = await fetchScores()
+
+  // 3) associar score a cada email (exemplo: por categoria)
+  const updatedEmails = emailList.map(email => {
+    const sc = scores.find(s => s.id === email.score)
+    return {
+      ...email,
+      scoreLabel: sc ? sc.classificacao : "Sem score",
+    }
+  })
+
+  setEmails(updatedEmails)
+  setIsLoading(false)
+}
 
   const toggleExpand = (id) => {
     setExpandedIds(prev => {
@@ -45,17 +73,24 @@ export default function EmailsPage() {
 
   const filteredEmails = emails.filter(email => {
     const matchesCategory = filterCategory === 'all' || email.categoria === filterCategory
-    const matchesScore = filterScore === 'all' || (filterScore === 'high' ? email.score >= 0.7 : email.score < 0.7)
+    const matchesScore = filterScore === 'all' || Number(filterScore) === email.score
     const matchesSearch = searchTerm === '' || 
                           email.assunto.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           email.conteudo.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesCategory && matchesScore && matchesSearch
   })
 
-  const getScoreColor = (score) => {
-    if (score >= 0.8) return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-    if (score >= 0.5) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-    return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+  const getScoreColor = (label: string) => {
+    if (label === "Excelente")
+      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+
+    if (label === "Satisfatório")
+      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+
+    if (label === "Insatisfatório")
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+
+    return "bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
   }
 
   return (
@@ -96,9 +131,10 @@ export default function EmailsPage() {
                 <SelectValue placeholder="Filtrar por Score" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os Scores</SelectItem>
-                <SelectItem value="high">Score Alto (maior ou igual a 0.7)</SelectItem>
-                <SelectItem value="low">Score Baixo (menor que 0.7)</SelectItem>
+                <SelectItem value="all">Todos os scores</SelectItem>
+                <SelectItem value="1">Insatisfatório</SelectItem>
+                <SelectItem value="2">Satisfatório</SelectItem>
+                <SelectItem value="3">Excelente</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -118,7 +154,7 @@ export default function EmailsPage() {
             <div className="grid grid-cols-1 gap-4">
               {filteredEmails.map(email => {
                 const open = expandedIds.has(email.id)
-                const scoreColor = getScoreColor(email.score)
+                const scoreColor = getScoreColor(email.scoreLabel)
                 
                 return (
                   <Card key={email.id} className="border-border hover:shadow-md transition-shadow">
@@ -131,7 +167,7 @@ export default function EmailsPage() {
                           <CardTitle className="text-base truncate">{email.assunto}</CardTitle>
                           <div className="flex items-center space-x-3 mt-1 text-sm text-muted-foreground">
                             <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${scoreColor}`}>
-                              Score: {(email.score * 100).toFixed(0)}%
+                              {email.scoreLabel}
                             </span>
                             <span className="text-xs">{email.categoria}</span>
                             <span className="flex items-center text-xs">
