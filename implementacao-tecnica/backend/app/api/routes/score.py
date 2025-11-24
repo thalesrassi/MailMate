@@ -11,7 +11,6 @@ router = APIRouter(prefix="/scores", tags=["scores"])
 @router.get("/", response_model=ScoreList)
 def list_scores(supabase: Client = Depends(get_supabase_client)):
     resp = supabase.table("scores").select("*").order("created_at").execute()
-    print("Resp:", resp)
     data = resp.data or []
     items = [ScoreOut(**item) for item in data]
     return ScoreList(items=items, total=len(items))

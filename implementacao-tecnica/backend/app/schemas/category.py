@@ -21,7 +21,6 @@ class CategoryUpdate(BaseModel):
 class CategoryOut(CategoryBase):
     id: int
     created_at: datetime
-    updated_at: datetime
 
 
 class CategoryList(BaseModel):
