@@ -20,17 +20,6 @@ type Category = {
   examples: Example[]
 }
 
-// Mock de dados
-const mockCategories = [
-  { id: 'cat-1', name: 'Vendas', examples: [
-    { id: 'ex-1', conteudo: 'Gostaria de saber o preço do produto X.', resposta: 'Olá! O preço do produto X é R$ 199,00. Posso te ajudar com mais detalhes?' },
-    { id: 'ex-2', conteudo: 'Quais as formas de pagamento?', resposta: 'Aceitamos cartão de crédito, boleto e PIX.' },
-  ]},
-  { id: 'cat-2', name: 'Suporte', examples: [
-    { id: 'ex-3', conteudo: 'Meu produto chegou quebrado.', resposta: 'Lamentamos o ocorrido. Por favor, envie fotos do produto e da embalagem para iniciarmos a troca.' },
-  ]},
-]
-
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -110,32 +99,40 @@ export default function CategoriesPage() {
       const data = await res.json()
       const items = Array.isArray(data) ? data : (data.items ?? [])
 
+      // Normaliza categorias sem exemplos ainda
       let normalized: Category[] = items.map((cat: any) => ({
         id: String(cat.id),
         nome: cat.nome,
         descricao: cat.descricao ?? '',
-        examples: [], // Preenche via /examples
+        examples: [],
       }))
-      if (normalized.length > 0) {
-        const first = normalized[0]
-        try {
-          const examples = await fetchCategoryExamples(first.id)
-          const updatedFirst: Category = { ...first, examples }
 
-          normalized = normalized.map(cat =>
-            cat.id === first.id ? updatedFirst : cat
-          )
-
-          setCategories(normalized)
-          setSelectedCategory(updatedFirst)
-        } catch (err: any) {
-          console.error(err)
-          toast.error(err.message || 'Erro ao carregar exemplos da categoria')
-          setSelectedCategory(first)
-        }
-      } else {
+      if (normalized.length === 0) {
+        setCategories([])
         setSelectedCategory(null)
+        return
       }
+
+      // Carrega exemplos de TODAS as categorias em paralelo
+      const withExamples: Category[] = await Promise.all(
+        normalized.map(async (cat) => {
+          try {
+            const examples = await fetchCategoryExamples(cat.id)
+            return { ...cat, examples }
+          } catch (err: any) {
+            console.error(err)
+            toast.error(
+              err.message ||
+                `Erro ao carregar exemplos da categoria "${cat.nome}"`
+            )
+            return cat // volta sem exemplos se der erro
+          }
+        })
+      )
+
+      setCategories(withExamples)
+      // Seleciona a primeira categoria já com exemplos carregados
+      setSelectedCategory(withExamples[0] ?? null)
     } catch (err: any) {
       console.error(err)
       toast.error(err.message || 'Erro ao carregar categorias')
@@ -143,6 +140,7 @@ export default function CategoriesPage() {
       setIsLoading(false)
     }
   }
+
 
 
 
@@ -329,25 +327,6 @@ export default function CategoriesPage() {
     setDescExpanded(false)
     setEditMode(false)
     setExpandedExamples({}) // reseta expansão dos exemplos
-
-    try {
-      setIsLoading(true)
-      const examples = await fetchCategoryExamples(cat.id)
-      const updated = { ...cat, examples }
-
-      // atualiza no estado global
-      setCategories(prev =>
-        prev.map(c => (c.id === cat.id ? updated : c))
-      )
-
-      // atualiza categoria selecionada
-      setSelectedCategory(updated)
-    } catch (err: any) {
-      console.error(err)
-      toast.error(err.message || 'Erro ao carregar exemplos da categoria')
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   const handleCancelEdit = () => {
@@ -409,21 +388,23 @@ export default function CategoriesPage() {
               <div className="flex justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
-            ) : categories.length === 0 ? (
+            ) : categories.filter(cat => cat.id !== '7').length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">Nenhuma categoria cadastrada.</p>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {categories.map(cat => (
-                  <Button
-                    key={cat.id}
-                    variant={selectedCategory?.id === cat.id ? 'default' : 'outline'}
-                    className="w-full justify-start"
-                    onClick={() => handleSelectCategory(cat)}
-                  >
-                    <FolderOpen className="w-4 h-4 mr-2" />
-                    {cat.nome} ({cat.examples.length})
-                  </Button>
-                ))}
+                {categories
+                  .filter(cat => cat.id !== '7') // não exibe categoria com id '7' => Outros
+                  .map(cat => (
+                    <Button
+                      key={cat.id}
+                      variant={selectedCategory?.id === cat.id ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => handleSelectCategory(cat)}
+                    >
+                      <FolderOpen className="w-4 h-4 mr-2" />
+                      {cat.nome} ({cat.examples.length})
+                    </Button>
+                  ))}
               </div>
             )}
           </CardContent>
@@ -451,7 +432,7 @@ export default function CategoriesPage() {
                       )}
                     </CardTitle>
                     <CardDescription>
-                      Use exemplos para treinar a IA a responder e-mails desta categoria.
+                      Use exemplos para treinar a IA a responder e-mails desta categoria. Quanto mais exemplos, melhor!
                     </CardDescription>
                   </div>
 

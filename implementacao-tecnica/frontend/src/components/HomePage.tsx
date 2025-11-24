@@ -9,6 +9,25 @@ import { Upload, Send, Loader2, CheckCircle, ChevronDown, ChevronUp, Clock, XCir
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/useTheme'
 
+type EmailResult = {
+  id: string
+  assunto: string
+  resposta: string
+  created_at: string
+  categoria_id: string | null
+  score_id: string | null
+}
+
+type HistoryItem = {
+  id: string
+  assunto: string
+  resposta: string
+  created_at: string
+  categoria_id: string | null
+  score_id: string | null
+}
+
+
 // Assets estão em /public/dark_logo.png e /public/light_logo.png
 const darkLogo = '/dark_logo.png'
 const lightLogo = '/light_logo.png'
@@ -18,15 +37,49 @@ export default function HomePage() {
   const [emailText, setEmailText] = useState('')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [result, setResult] = useState<{ classification: string; subject: string; body: string } | null>(null)
+  const [result, setResult] = useState<EmailResult | null>(null)
   const [inputMethod, setInputMethod] = useState('text') // 'text' ou 'file'
-  const [history, setHistory] = useState<Array<{ id: string; assunto: string; classificacao: string; resposta: string; created_at: string }>>([])
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [categoriesMap, setCategoriesMap] = useState<Record<string, string>>({})
+  const [scores, setScores] = useState<Array<{ id: string; classificacao: string }>>([])
+  const [scoresMap, setScoresMap] = useState<Record<string, { id: string; classificacao: string }>>({})
+  const [ratingEmailId, setRatingEmailId] = useState<string | null>(null)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [expandedIds, setExpandedIds] = useState(new Set()) // controle de “abrir/fechar” card
-  // const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  const baseUrl = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:8000'
   // API desabilitada temporariamente — usar mock/localStorage
   const MOCK_MODE = true
   const { darkMode } = useTheme()
+
+
+  const palette = [
+    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+    "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+    "bg-gray-200 text-gray-700 dark:bg-gray-800/30 dark:text-gray-300",
+  ]
+
+  const renderCategoryBadge = (categoriaId: any) => {
+    // categoriaId pode vir como: null, número, uuid, string…
+    const strId = String(categoriaId || "outros")
+
+    const nome = categoriesMap[strId] || "Outros"
+
+    const index = strId
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+
+    const color = palette[index % palette.length]
+
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${color}`}>
+        {nome}
+      </span>
+    )
+  }
+
 
 
   const [isDark, setIsDark] = useState(
@@ -49,6 +102,8 @@ export default function HomePage() {
 
   useEffect(() => {
     loadHistory()
+    loadCategories()
+    loadScores()
   }, [])
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,14 +113,6 @@ export default function HomePage() {
     }
   }
 
-  function buildSubject(classification: string, original: string) {
-    // Heurística simples só pra ter um assunto "ok"
-    if (classification === 'Produtivo') return 'Retorno AutoU Invest — seu atendimento'
-    if (classification === 'Improdutivo') return 'Agradecimento — AutoU Invest'
-    // fallback: usa trecho do original
-    const base = (original || '').replace(/\s+/g, ' ').slice(0, 60)
-    return base ? `Re: ${base}` : 'Retorno — AutoU Invest'
-  }
 
   function toggleExpand(id: string) {
     setExpandedIds(prev => {
@@ -85,16 +132,99 @@ export default function HomePage() {
     })
   }
 
+  async function loadCategories() {
+    try {
+      const res = await fetch(`${baseUrl}/categories/`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || 'Falha ao carregar categorias')
+      }
+
+      const data = await res.json()
+      const itemsRaw = Array.isArray(data) ? data : (data.items ?? [])
+
+      const map: Record<string, string> = {}
+      itemsRaw.forEach((cat: any) => {
+        if (cat.id) {
+          map[String(cat.id)] = cat.nome ?? String(cat.id)
+        }
+      })
+
+      setCategoriesMap(map)
+    } catch (e: any) {
+      console.error(e)
+      toast(e.message || 'Falha ao carregar categorias', {
+        duration: 3000,
+        icon: <XCircle className="text-red-500" />,
+      })
+    }
+  }
+
+  async function loadScores() {
+    try {
+      const res = await fetch(`${baseUrl}/scores/`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || 'Falha ao carregar scores')
+      }
+
+      const data = await res.json()
+      const itemsRaw = Array.isArray(data) ? data : (data.items ?? [])
+
+      const list = itemsRaw.map((s: any) => ({
+        id: String(s.id),
+        classificacao: s.classificacao,
+      }))
+
+      const map: Record<string, { id: string; classificacao: string }> = {}
+      list.forEach((s) => {
+        map[s.id] = s
+      })
+
+      setScores(list)
+      setScoresMap(map)
+    } catch (e: any) {
+      console.error(e)
+      toast(e.message || 'Falha ao carregar scores', {
+        duration: 3000,
+        icon: <XCircle className="text-red-500" />,
+      })
+    }
+  }
+
+
   async function loadHistory() {
     try {
       setIsLoadingHistory(true)
-      // Carrega histórico do localStorage (mock)
-      const raw = localStorage.getItem('mailmate_history')
-      const items = raw ? JSON.parse(raw) : []
-      setHistory(Array.isArray(items) ? items : [])
-    } catch (e) {
+
+      const params = new URLSearchParams({
+        page: "1",
+        page_size: "20",
+      })
+
+      const res = await fetch(`${baseUrl}/emails/?${params.toString()}`)
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || "Falha ao carregar histórico de e-mails")
+      }
+
+      const data = await res.json()
+      const itemsRaw = Array.isArray(data) ? data : (data.items ?? [])
+
+      const mapped: HistoryItem[] = itemsRaw.map((item: any) => ({
+        id: String(item.id),
+        assunto: item.assunto,
+        resposta: item.resposta,
+        created_at: item.created_at,
+        categoria_id: item.categoria_id ?? null,
+        score_id: item.score_id ?? null,
+      }))
+
+      setHistory(mapped)
+    } catch (e: any) {
       console.error(e)
-      toast("Falha ao carregar histórico local", {
+      toast(e.message || "Falha ao carregar histórico de e-mails", {
         duration: 3000,
         icon: <XCircle className="text-red-500" />,
       })
@@ -102,6 +232,7 @@ export default function HomePage() {
       setIsLoadingHistory(false)
     }
   }
+
 
   const callApi = async () => {
     setIsLoading(true)
@@ -113,7 +244,7 @@ export default function HomePage() {
       if (inputMethod === "text") {
         form.append("conteudo", emailText)
       } else if (inputMethod === "file" && uploadedFile) {
-        form.append("arquivo", uploadedFile)
+        form.append("file", uploadedFile)
       }
 
       const res = await fetch(`${baseUrl}/emails/`, {
@@ -128,20 +259,20 @@ export default function HomePage() {
       }
       const data = await res.json()
 
-      const mapped = {
-        subject: data.assunto,
-        body: data.resposta,
-        classification: data.classificacao,
-        originalContent: data.conteudo,
-        id: data.id,
-        createdAt: data.created_at,
+      const mapped: EmailResult = {
+        id: String(data.id),
+        assunto: data.assunto,
+        resposta: data.resposta,
+        created_at: data.created_at,
+        categoria_id: data.categoria_id ?? null,
+        score_id: data.score_id ?? null,
       }
 
       // atualiza resultado e histórico local
       setResult(mapped)
       setActiveTab('result')
 
-      toast("E-mail processado com sucesso (mock)!", {
+      toast("E-mail processado com sucesso!", {
         duration: 2500,
         icon: <CheckCircle className="text-green-500" />,
       })
@@ -156,6 +287,53 @@ export default function HomePage() {
     }
   }
 
+  async function handleRateEmail(emailId: string, scoreId: string) {
+    try {
+      setRatingEmailId(emailId)
+
+      const res = await fetch(`${baseUrl}/emails/${emailId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ score_id: scoreId }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || "Falha ao registrar avaliação")
+      }
+
+      const updated = await res.json()
+
+      // atualiza histórico
+      setHistory(prev =>
+        prev.map(item =>
+          item.id === emailId ? { ...item, score_id: updated.score_id ?? scoreId } : item
+        )
+      )
+
+      // atualiza result atual, se for o mesmo e-mail
+      setResult(prev =>
+        prev && prev.id === emailId
+          ? { ...prev, score_id: updated.score_id ?? scoreId }
+          : prev
+      )
+
+      toast("Avaliação registrada!", {
+        duration: 2500,
+        icon: <CheckCircle className="text-green-500" />,
+      })
+    } catch (e: any) {
+      console.error(e)
+      toast(e.message || "Erro ao registrar avaliação", {
+        duration: 3000,
+        icon: <XCircle className="text-red-500" />,
+      })
+    } finally {
+      setRatingEmailId(null)
+    }
+  }
+
+
   const handleSubmit = () => {
     if ((inputMethod === 'text' && emailText.trim()) || (inputMethod === 'file' && uploadedFile)) {
       callApi()
@@ -164,7 +342,7 @@ export default function HomePage() {
 
   const copyToClipboard = () => {
     if (result) {
-      const content = `Assunto: ${result.subject}\n\n${result.body}`
+      const content = `Assunto: ${result.assunto}\n\n${result.resposta}`
       navigator.clipboard.writeText(content)
       toast("Conteúdo copiado para a área de transferência!", {
         duration: 2500,
@@ -175,8 +353,8 @@ export default function HomePage() {
 
   const sendEmail = () => {
     if (result) {
-      const subject = encodeURIComponent(result.subject)
-      const body = encodeURIComponent(result.body)
+      const subject = encodeURIComponent(result.assunto)
+      const body = encodeURIComponent(result.resposta)
       window.location.href = `mailto:?subject=${subject}&body=${body}`
     }
   }
@@ -350,25 +528,17 @@ export default function HomePage() {
                   </div>
                 ) : result ? (
                   <div className="space-y-6">
-                    {/* Classificação */}
+                    {/* Categoria */}
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-foreground">Categoria:</span>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${
-                          result.classification === 'Produtivo'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                        }`}
-                      >
-                        {result.classification}
-                      </span>
+                      {renderCategoryBadge(result.categoria_id)}
                     </div>
 
                     {/* Assunto */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-foreground">Assunto</Label>
                       <div className="p-3 sm:p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-foreground break-words">{result.subject}</p>
+                        <p className="text-sm text-foreground break-words">{result.assunto}</p>
                       </div>
                     </div>
 
@@ -378,10 +548,34 @@ export default function HomePage() {
                       <div className="p-3 sm:p-4 bg-muted rounded-lg">
                         {/* Safari-iOS: quebra segura de linha/palavra */}
                         <pre className="text-sm whitespace-pre-wrap break-words font-sans text-foreground">
-                          {result.body}
+                          {result.resposta}
                         </pre>
                       </div>
                     </div>
+
+                    {/* Avaliação (Score) */}
+                    {scores.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">Avaliar resposta</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {scores.map((score) => (
+                            <Button
+                              key={score.id}
+                              variant={result.score_id === score.id ? "default" : "outline"}
+                              size="sm"
+                              className="cursor-pointer"
+                              disabled={ratingEmailId === result.id}
+                              onClick={() => handleRateEmail(result.id, score.id)}
+                            >
+                              {ratingEmailId === result.id && (
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                              )}
+                              {score.classificacao}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Ações */}
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
@@ -462,10 +656,17 @@ export default function HomePage() {
 
             {history.map((item: any) => {
               const open = expandedIds.has(item.id)
-              const clsColor =
-                item.classificacao === 'Produtivo'
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+              const categoriaNome =
+                (item.categoria_id && categoriesMap[item.categoria_id]) || "Outros"
+
+              const score = item.score_id ? scoresMap[item.score_id] : null
+              let clsColor = "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+
+              if (score?.classificacao?.toLowerCase() === "excelente") {
+                clsColor = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+              } else if (score?.classificacao?.toLowerCase().startsWith("insatisf")) {
+                clsColor = "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+              }
 
               return (
                 <div key={item.id} className="border border-border rounded-lg bg-card">
@@ -492,9 +693,9 @@ export default function HomePage() {
                         </span>
 
                         <span
-                          className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${clsColor}`}
+                          className="shrink-0"
                         >
-                          {item.classificacao || '—'}
+                          {renderCategoryBadge(item.categoria_id)}
                         </span>
                       </div>
 
@@ -518,9 +719,9 @@ export default function HomePage() {
                   {open && (
                     <div className="px-3 sm:px-4 pb-4">
                       <div className="mt-1 sm:mt-2">
-                        <Label className="text-sm font-medium text-foreground">Classificação</Label>
+                        <Label className="text-sm font-medium text-foreground">Conteúdo</Label>
                         <div className={`inline-block ml-2 px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${clsColor}`}>
-                          {item.classificacao}
+                          {categoriaNome}
                         </div>
                       </div>
 
@@ -532,6 +733,34 @@ export default function HomePage() {
                             {item.resposta || '-'}
                           </pre>
                         </div>
+                      </div>
+
+                     {/* Avaliação */}
+                      <div className="mt-3 space-y-2">
+                        {scores.length > 0 && (
+                          <>
+                            <Label className="text-sm font-medium text-foreground">
+                              Avaliar resposta
+                            </Label>
+                            <div className="flex flex-wrap gap-2">
+                              {scores.map((score) => (
+                                <Button
+                                  key={score.id}
+                                  variant={item.score_id === score.id ? "default" : "outline"}
+                                  size="sm"
+                                  className="cursor-pointer"
+                                  disabled={ratingEmailId === item.id}
+                                  onClick={() => handleRateEmail(item.id, score.id)}
+                                >
+                                  {ratingEmailId === item.id && (
+                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                  )}
+                                  {score.classificacao}
+                                </Button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-3">
