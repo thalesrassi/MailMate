@@ -19,5 +19,3 @@ Instruções para rodar localmente:
 - Acessar http://localhost:8000
 
 - OBS: Com a aplicação rodando, pode testar a interface seguindo os passos no readme do repositório `https://github.com/marquezzin/autou-frontend`
-
-Url em produção disponível: https://autou-backend-wr7t.onrender.com
