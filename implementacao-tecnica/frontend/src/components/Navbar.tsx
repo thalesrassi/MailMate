@@ -1,12 +1,18 @@
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Sun, Moon, Mail, BarChart2, ListFilter, FolderOpen, Menu } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 
 const navItems = [
-  { id: 'home', label: 'Início', icon: Mail },
-  { id: 'emails', label: 'E-mails', icon: ListFilter },
-  { id: 'categories', label: 'Categorias', icon: FolderOpen },
-  { id: 'dashboard', label: 'Dashboards', icon: BarChart2 }
+  { id: "home", label: "Início", icon: Mail },
+  { id: "emails", label: "E-mails", icon: ListFilter },
+  { id: "categories", label: "Categorias", icon: FolderOpen },
+  { id: "dashboard", label: "Dashboards", icon: BarChart2 },
 ]
 
 interface NavbarProps {
@@ -36,14 +42,16 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
           </div>
         </div>
 
-        {/* Centro: Navegação */}
+        {/* Centro: Navegação desktop */}
         <nav className="hidden md:flex space-x-1">
-          {navItems.map(item => {
+          {navItems.map((item) => {
             const Icon = item.icon
+            const isActive = currentPage === item.id
+
             return (
               <Button
                 key={item.id}
-                variant={currentPage === item.id ? "secondary" : "ghost"}
+                variant={isActive ? "secondary" : "ghost"}
                 onClick={() => setCurrentPage(item.id)}
                 className="flex items-center space-x-2"
               >
@@ -70,10 +78,37 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
             )}
           </button>
 
-          {/* Menu mobile (mantido) */}
-          <Button variant="ghost" size="sm" className="md:hidden">
-            <Menu className="w-5 h-5" />
-          </Button>
+          {/* Menu mobile */}
+        <div className="md:hidden">
+          <DropdownMenu>
+            {/* Trigger nativo do Radix, sem Button e sem asChild */}
+            <DropdownMenuTrigger
+              className="inline-flex items-center justify-center rounded-md p-2 hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+              aria-label="Abrir menu de navegação"
+            >
+              <Menu className="w-5 h-5" />
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" className="w-44">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = currentPage === item.id
+
+                return (
+                  <DropdownMenuItem
+                    key={item.id}
+                    onClick={() => setCurrentPage(item.id)}
+                    className={isActive ? "bg-muted font-medium" : ""}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    <span>{item.label}</span>
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         </div>
       </div>
     </header>
