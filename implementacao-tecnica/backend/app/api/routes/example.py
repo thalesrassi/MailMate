@@ -63,4 +63,4 @@ def create_example(
 
 @router.delete("/{example_id}", status_code=204)
 def delete_email(example_id: str, supabase: Client = Depends(get_supabase_client)):
-    resp = supabase.table("emails").delete().eq("id", example_id).execute()
+    resp = supabase.table("examples").delete().eq("id", example_id).execute()

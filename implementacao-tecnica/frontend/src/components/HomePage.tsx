@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/useTheme'
 type EmailResult = {
   id: string
   assunto: string
+  conteudo: string
   resposta: string
   created_at: string
   categoria_id: string | null
@@ -21,6 +22,7 @@ type EmailResult = {
 type HistoryItem = {
   id: string
   assunto: string
+  conteudo: string
   resposta: string
   created_at: string
   categoria_id: string | null
@@ -215,6 +217,7 @@ export default function HomePage() {
       const mapped: HistoryItem[] = itemsRaw.map((item: any) => ({
         id: String(item.id),
         assunto: item.assunto,
+        conteudo: item.conteudo,
         resposta: item.resposta,
         created_at: item.created_at,
         categoria_id: item.categoria_id ?? null,
@@ -262,6 +265,7 @@ export default function HomePage() {
       const mapped: EmailResult = {
         id: String(data.id),
         assunto: data.assunto,
+        conteudo: data.conteudo,
         resposta: data.resposta,
         created_at: data.created_at,
         categoria_id: data.categoria_id ?? null,
@@ -398,7 +402,7 @@ export default function HomePage() {
               disabled={isLoading}
               className={`flex items-center space-x-2 cursor-pointer transition-all ${
                 activeTab === 'submission'
-                  ? 'font-semibold rounded-md shadow-md  ring-1 ring-primary/25'
+                  ? `font-semibold rounded-md shadow-md ${darkMode ? 'ring-2 ring-primary/25' : 'ring-1 ring-primary/25'}`
                   : ''
               }`}
               style={!darkMode ? { backgroundColor: "var(--card)", color: "var(--card-foreground)" } : undefined}
@@ -412,7 +416,7 @@ export default function HomePage() {
               disabled={!result && !isLoading}
               className={`flex items-center space-x-2 cursor-pointer transition-all ${
                 activeTab === 'result'
-                  ? 'font-semibold rounded-md shadow-md ring-1 ring-primary/25'
+                  ? `font-semibold rounded-md shadow-md ${darkMode ? 'ring-2 ring-primary/25' : 'ring-1 ring-primary/25'}`
                   : ''
               }`}
               style={!darkMode ? { backgroundColor: "var(--card)", color: "var(--card-foreground)" } : undefined}
@@ -554,28 +558,41 @@ export default function HomePage() {
                     </div>
 
                     {/* Avaliação (Score) */}
+        
                     {scores.length > 0 && (
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-foreground">Avaliar resposta</Label>
                         <div className="flex flex-wrap gap-2">
-                          {scores.map((score) => (
-                            <Button
-                              key={score.id}
-                              variant={result.score_id === score.id ? "default" : "outline"}
-                              size="sm"
-                              className="cursor-pointer"
-                              disabled={ratingEmailId === result.id}
-                              onClick={() => handleRateEmail(result.id, score.id)}
-                            >
-                              {ratingEmailId === result.id && (
-                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                              )}
-                              {score.classificacao}
-                            </Button>
-                          ))}
+                          {scores.map((score) => {
+                            const isSelected = result.score_id == score.id
+                            const alreadyRated = Boolean(result.score_id)
+                            const isLoadingRating = ratingEmailId == result.id
+
+                            return (
+                              <Button
+                                key={score.id}
+                                variant={isSelected ? "default" : "outline"}
+                                size="sm"
+                                disabled={isLoadingRating || alreadyRated}
+                                onClick={() => handleRateEmail(result.id, score.id)}
+                                className={
+                                  "cursor-pointer " +
+                                  (isSelected
+                                    ? "bg-green-500 text-white hover:bg-green-500 dark:bg-green-600 dark:text-white border-green-500"
+                                    : "")
+                                }
+                              >
+                                {isLoadingRating && !alreadyRated && (
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                )}
+                                {score.classificacao}
+                              </Button>
+                            )
+                          })}
                         </div>
                       </div>
                     )}
+
 
                     {/* Ações */}
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
@@ -718,13 +735,16 @@ export default function HomePage() {
                   {/* Corpo expandido */}
                   {open && (
                     <div className="px-3 sm:px-4 pb-4">
-                      <div className="mt-1 sm:mt-2">
+                    
+                      <div className="mt-2 sm:mt-3">
                         <Label className="text-sm font-medium text-foreground">Conteúdo</Label>
-                        <div className={`inline-block ml-2 px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${clsColor}`}>
-                          {categoriaNome}
+                        <div className="p-2 sm:p-3 bg-muted rounded-lg mt-1">
+                          {/* quebra segura no iOS */}
+                          <pre className="text-sm whitespace-pre-wrap break-words font-sans">
+                            {item.conteudo || '-'}
+                          </pre>
                         </div>
                       </div>
-
                       <div className="mt-2 sm:mt-3">
                         <Label className="text-sm font-medium text-foreground">Resposta</Label>
                         <div className="p-2 sm:p-3 bg-muted rounded-lg mt-1">
@@ -737,31 +757,43 @@ export default function HomePage() {
 
                      {/* Avaliação */}
                       <div className="mt-3 space-y-2">
-                        {scores.length > 0 && (
-                          <>
-                            <Label className="text-sm font-medium text-foreground">
-                              Avaliar resposta
-                            </Label>
-                            <div className="flex flex-wrap gap-2">
-                              {scores.map((score) => (
+                      {scores.length > 0 && (
+                        <>
+                          <Label className="text-sm font-medium text-foreground">
+                            Avaliar resposta
+                          </Label>
+                          <div className="flex flex-wrap gap-2">
+                            {scores.map((score) => {
+                              const isSelected = item.score_id == score.id
+                              const alreadyRated = Boolean(item.score_id)
+                              const isLoadingRating = ratingEmailId == item.id
+
+                              return (
                                 <Button
-                                  key={score.id}
-                                  variant={item.score_id === score.id ? "default" : "outline"}
+                                  key={score.id}  
+                                  variant={isSelected ? "default" : "outline"}
                                   size="sm"
-                                  className="cursor-pointer"
-                                  disabled={ratingEmailId === item.id}
+                                  disabled={isLoadingRating || alreadyRated}
                                   onClick={() => handleRateEmail(item.id, score.id)}
+                                  className={
+                                    "cursor-pointer " +
+                                    (isSelected
+                                      ? "bg-green-500 text-white hover:bg-green-500 dark:bg-green-600 dark:text-white border-green-500"
+                                      : "")
+                                  }
                                 >
-                                  {ratingEmailId === item.id && (
+                                  {isLoadingRating && !alreadyRated && (
                                     <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                                   )}
                                   {score.classificacao}
                                 </Button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
+                              )
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
 
                       <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-3">
                         <Button

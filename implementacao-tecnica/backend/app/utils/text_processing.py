@@ -5,7 +5,6 @@ from fastapi import UploadFile
 from typing import Optional
 
 FOOTER_PATTERNS = [
-    r"At\.?t?e?\.?.*",           # "Att.", "Atte", etc
     r"Enviado do meu iPhone",
     r"Enviado do meu Android",
 ]

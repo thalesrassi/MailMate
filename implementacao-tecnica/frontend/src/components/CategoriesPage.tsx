@@ -4,8 +4,20 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Plus, Trash2, Mail, MessageSquare, FolderOpen, Edit } from 'lucide-react'
+import { Loader2, Plus, Trash2, Mail, MessageSquare, FolderOpen, Edit, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { IconButtonWithTooltip } from './IconButtonWithTooltip'
 
 type Example = {
   id: string
@@ -29,6 +41,8 @@ export default function CategoriesPage() {
   const [newExample, setNewExample] = useState<Example>({ id: '', conteudo: '', resposta: '' })
   const [descExpanded, setDescExpanded] = useState(false)
   const [expandedExamples, setExpandedExamples] = useState<Record<string, boolean>>({})
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteExampleOpen, setDeleteExampleOpen] = useState<string | null>(null)
 
   // edição de categoria
   const [editMode, setEditMode] = useState(false)
@@ -249,6 +263,35 @@ export default function CategoriesPage() {
     }
   }
 
+  const handleDeleteCategory = async (categoryId: string | undefined) => {
+    if (!categoryId) return
+
+    try {
+      setIsLoading(true)
+
+      const res = await fetch(`${baseUrl}/categories/${categoryId}`, {
+        method: "DELETE",
+      })
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.detail || "Falha ao excluir categoria")
+      }
+
+      // Remove do estado
+      setCategories(prev => prev.filter(cat => cat.id !== categoryId))
+      setSelectedCategory(null)
+
+      toast.success("Categoria excluída com sucesso!")
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Erro ao excluir categoria")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+
   const handleDeleteExample = async (exampleId: string) => {
     if (!selectedCategory) return
 
@@ -437,39 +480,90 @@ export default function CategoriesPage() {
                   </div>
 
                   {/* BOTÕES — versão responsiva */}
-                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-2">
                     {editMode ? (
                       <>
-                        <Button
-                          size="sm"
+                        {/* SALVAR */}
+                        <IconButtonWithTooltip
+                          size="icon"
+                          variant="default"
                           onClick={handleSaveCategory}
                           disabled={isLoading}
+                          tooltip="Salvar alterações"
                         >
                           {isLoading ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            'Salvar'
+                            <Check className="w-4 h-4" />
                           )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                        </IconButtonWithTooltip>
+
+                        {/* CANCELAR */}
+                        <IconButtonWithTooltip
+                          size="icon"
+                          variant="outline"
                           onClick={handleCancelEdit}
                           disabled={isLoading}
+                          tooltip="Cancelar edição"
                         >
-                          Cancelar
-                        </Button>
+                          <X className="w-4 h-4" />
+                        </IconButtonWithTooltip>
                       </>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditMode(true)}
-                      >
-                        <Edit className="w-4 h-4 mr-2" /> Editar
-                      </Button>
+                      <>
+                        {/* EDITAR */}
+                        <IconButtonWithTooltip
+                          size="icon"
+                          variant="outline"
+                          onClick={() => setEditMode(true)}
+                          tooltip="Editar categoria"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </IconButtonWithTooltip>
+
+                        {/* EXCLUIR CATEGORIA */}
+                        <IconButtonWithTooltip
+                          size="icon"
+                          variant="outline"
+                          onClick={() => setDeleteOpen(true)}
+                          className="text-red-500 hover:text-red-700"
+                          tooltip="Excluir categoria"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </IconButtonWithTooltip>
+                      </>
                     )}
                   </div>
+
+                  <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir categoria?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação é permanente e removerá a categoria{" "}
+                          <span className="font-semibold">{selectedCategory?.nome}</span> e todos os
+                          e-mails e exemplos vinculados.
+                          <br />
+                          <br />
+                          Deseja realmente continuar?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          onClick={() => {
+                            handleDeleteCategory(selectedCategory?.id)
+                            setDeleteOpen(false)
+                          }}
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
                 </div>
 
                 {selectedCategory.descricao && (
@@ -570,76 +664,134 @@ export default function CategoriesPage() {
                       const isConteudoExpanded = expandedExamples[example.id + "-conteudo"] ?? false
                       const isRespostaExpanded = expandedExamples[example.id + "-resposta"] ?? false
 
+                      const conteudo = example.conteudo || ""
+                      const resposta = example.resposta || ""
+
+                      const shouldClampConteudo = conteudo.length > 180
+                      const shouldClampResposta = resposta.length > 180
+
                       return (
                         <div key={example.id} className="border p-4 rounded-lg space-y-3">
-
                           {/* Cabeçalho + botão deletar */}
                           <div className="flex justify-between items-start">
                             <h4 className="font-semibold text-sm flex items-center">
                               <Mail className="w-4 h-4 mr-2 text-primary" />
                               Conteúdo do E-mail
                             </h4>
-                            <Button
+
+                            {/* Botão abre modal */}
+                            <IconButtonWithTooltip
+                              tooltip="Excluir exemplo"
                               variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteExample(example.id)}
+                              size="icon"
+                              onClick={() => {
+                                setDeleteExampleOpen(example.id)  // abre o modal para ESTE exemplo
+                              }}
                               className="text-red-500 hover:text-red-700"
                             >
                               <Trash2 className="w-4 h-4" />
-                            </Button>
+                            </IconButtonWithTooltip>
                           </div>
 
-                          {/* Conteúdo do e-mail */}
-                          <p
-                            className={`text-sm text-muted-foreground leading-relaxed ${
-                              isConteudoExpanded ? "" : "line-clamp-3"
-                            }`}
+                          {/* ========== Modal de exclusão ========== */}
+                          <AlertDialog
+                            open={deleteExampleOpen === example.id}
+                            onOpenChange={(open) => {
+                              if (!open) setDeleteExampleOpen(null)
+                            }}
                           >
-                            {example.conteudo}
-                          </p>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir exemplo?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação é permanente e removerá o exemplo selecionado.
+                                  <br /><br />
+                                  Deseja realmente continuar?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
 
-                          {/* Botão ver mais/menos do conteúdo */}
-                          {example.conteudo.length > 180 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                toggleExampleExpand(example.id + "-conteudo")
-                              }
-                              className="text-xs text-primary hover:underline"
-                            >
-                              {isConteudoExpanded ? "Ver menos" : "Ver mais"}
-                            </button>
-                          )}
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
 
-                          {/* Resposta ideal */}
-                          <h4 className="font-semibold text-sm flex items-center mt-2">
-                            <MessageSquare className="w-4 h-4 mr-2 text-primary" />
-                            Resposta Ideal
-                          </h4>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                  onClick={() => {
+                                    handleDeleteExample(example.id)
+                                    setDeleteExampleOpen(null)
+                                  }}
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
 
-                          <p
-                            className={`text-sm text-muted-foreground leading-relaxed ${
-                              isRespostaExpanded ? "" : "line-clamp-3"
-                            }`}
-                          >
-                            {example.resposta}
-                          </p>
 
-                          {/* Botão ver mais/menos da resposta */}
-                          {example.resposta.length > 180 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                toggleExampleExpand(example.id + "-resposta")
-                              }
-                              className="text-xs text-primary hover:underline"
-                            >
-                              {isRespostaExpanded ? "Ver menos" : "Ver mais"}
-                            </button>
-                          )}
+                          {/* Conteúdo + Resposta */}
+                          <div className="mt-3 space-y-3">
+                            {/* Conteúdo do e-mail */}
+                            <div>
+                              <Label className="text-sm font-medium text-foreground">
+                                Conteúdo do E-mail
+                              </Label>
+                              <div className="p-2 sm:p-3 bg-muted rounded-lg mt-1">
+                                <pre
+                                  className={[
+                                    "text-sm whitespace-pre-wrap break-words font-sans text-muted-foreground",
+                                    shouldClampConteudo && !isConteudoExpanded ? "line-clamp-3" : "",
+                                  ].join(" ")}
+                                >
+                                  {conteudo || "-"}
+                                </pre>
+                              </div>
+
+                              {shouldClampConteudo && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    toggleExampleExpand(example.id + "-conteudo")
+                                  }
+                                  className="mt-1 text-xs text-primary hover:underline"
+                                >
+                                  {isConteudoExpanded ? "Ver menos" : "Ver mais"}
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Resposta ideal */}
+                            <div>
+                              <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4 text-primary" />
+                                Resposta Ideal
+                              </Label>
+                              <div className="p-2 sm:p-3 bg-muted rounded-lg mt-1">
+                                <pre
+                                  className={[
+                                    "text-sm whitespace-pre-wrap break-words font-sans text-muted-foreground",
+                                    shouldClampResposta && !isRespostaExpanded ? "line-clamp-3" : "",
+                                  ].join(" ")}
+                                >
+                                  {resposta || "-"}
+                                </pre>
+                              </div>
+
+                              {shouldClampResposta && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    toggleExampleExpand(example.id + "-resposta")
+                                  }
+                                  className="mt-1 text-xs text-primary hover:underline"
+                                >
+                                  {isRespostaExpanded ? "Ver menos" : "Ver mais"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )
                     })}
+
                   </div>
                 )}
               </CardContent>
