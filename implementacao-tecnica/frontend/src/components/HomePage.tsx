@@ -42,7 +42,9 @@ export default function HomePage() {
   const [result, setResult] = useState<EmailResult | null>(null)
   const [inputMethod, setInputMethod] = useState('text') // 'text' ou 'file'
   const [history, setHistory] = useState<HistoryItem[]>([])
-  const [categoriesMap, setCategoriesMap] = useState<Record<string, string>>({})
+  const [categoriesMap, setCategoriesMap] = useState<
+    Record<string, { nome: string; cor: string }>
+  >({})
   const [scores, setScores] = useState<Array<{ id: string; classificacao: string }>>([])
   const [scoresMap, setScoresMap] = useState<Record<string, { id: string; classificacao: string }>>({})
   const [ratingEmailId, setRatingEmailId] = useState<string | null>(null)
@@ -63,25 +65,20 @@ export default function HomePage() {
     "bg-gray-200 text-gray-700 dark:bg-gray-800/30 dark:text-gray-300",
   ]
 
-  const renderCategoryBadge = (categoriaId: any) => {
-    // categoriaId pode vir como: null, número, uuid, string…
-    const strId = String(categoriaId || "outros")
-
-    const nome = categoriesMap[strId] || "Outros"
-
-    const index = strId
-      .split("")
-      .reduce((acc, char) => acc + char.charCodeAt(0), 0)
-
-    const color = palette[index % palette.length]
+  const renderCategoryBadge = (categoriaId?: string | null) => {
+    if (!categoriaId) return null
+    const cat = categoriesMap[categoriaId]
+    if (!cat) return null
 
     return (
-      <span className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${color}`}>
-        {nome}
+      <span
+        className="px-2 py-0.5 rounded-full text-[11px] font-medium"
+        style={{ backgroundColor: cat.cor, color: '#fff' }}
+      >
+        {cat.nome}
       </span>
     )
   }
-
 
 
   const [isDark, setIsDark] = useState(
@@ -145,10 +142,14 @@ export default function HomePage() {
       const data = await res.json()
       const itemsRaw = Array.isArray(data) ? data : (data.items ?? [])
 
-      const map: Record<string, string> = {}
+      const map: Record<string, { nome: string; cor: string }> = {}
+
       itemsRaw.forEach((cat: any) => {
         if (cat.id) {
-          map[String(cat.id)] = cat.nome ?? String(cat.id)
+          map[String(cat.id)] = {
+            nome: cat.nome ?? String(cat.id),
+            cor: cat.cor ?? '#6366F1', // fallback se vier nulo
+          }
         }
       })
 

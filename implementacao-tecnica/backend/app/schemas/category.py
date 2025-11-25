@@ -7,7 +7,7 @@ from typing import Optional
 class CategoryBase(BaseModel):
     nome: str = Field(..., min_length=1, max_length=255)
     descricao: Optional[str] = Field(None, max_length=1000)
-
+    cor: Optional[str] = None
 
 class CategoryCreate(CategoryBase):
     pass
@@ -16,6 +16,7 @@ class CategoryCreate(CategoryBase):
 class CategoryUpdate(BaseModel):
     nome: Optional[str] = Field(None, max_length=255)
     descricao: Optional[str] = Field(None, max_length=1000)
+    cor: Optional[str] = None
 
 
 class CategoryOut(CategoryBase):

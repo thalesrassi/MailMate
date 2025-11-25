@@ -3,6 +3,7 @@ from app.db.supabase import get_supabase_client
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryOut, CategoryList
 from supabase import Client
 from postgrest.exceptions import APIError as PostgrestAPIError
+from app.utils.colors import pick_category_color
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 
@@ -34,8 +35,16 @@ def create_category(
     payload: CategoryCreate,
     supabase: Client = Depends(get_supabase_client),
 ):
+    data = payload.dict()
+     # Busca cores já usadas
+    colors_resp = supabase.table("categorias").select("cor").execute()
+    existing_colors = [row["cor"] for row in (colors_resp.data or []) if row.get("cor")]
+
+    # Se não veio cor, gera uma
+    if not data.get("cor"):
+        data["cor"] = pick_category_color(existing_colors)
     try:
-        resp = supabase.table("categorias").insert(payload.dict()).execute()
+        resp = supabase.table("categorias").insert(data).execute()
         if not resp.data or len(resp.data) == 0:
             raise HTTPException(status_code=500, detail="Failed to create category")
         return CategoryOut(**resp.data[0])

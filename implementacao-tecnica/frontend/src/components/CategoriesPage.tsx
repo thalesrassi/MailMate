@@ -29,6 +29,7 @@ type Category = {
   id: string
   nome: string
   descricao: string
+  cor: string
   examples: Example[]
 }
 
@@ -118,6 +119,7 @@ export default function CategoriesPage() {
         id: String(cat.id),
         nome: cat.nome,
         descricao: cat.descricao ?? '',
+        cor: cat.cor ?? '#6366F1',
         examples: [],
       }))
 
@@ -159,7 +161,6 @@ export default function CategoriesPage() {
 
 
   const handleAddCategory = async () => {
-    console.log("Adicionando categoria:", newCategoryName, newCategoryDescription)
     if (!newCategoryName.trim()) {
       toast.error("O nome da categoria não pode ser vazio.")
       return
@@ -178,13 +179,12 @@ export default function CategoriesPage() {
 
       const created = await res.json()
 
-      console.log("Categoria enviada:", newCategoryName, newCategoryDescription)
-      console.log("Categoria criada:", created)
 
       const newCat: Category = {
         id: String(created.id),
         nome: created.nome ?? newCategoryName.trim(),
         descricao: created.descricao ?? newCategoryDescription.trim(),
+        cor: created.cor ?? '#6366F1',
         examples: [],
       }
 

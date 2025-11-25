@@ -1,84 +1,80 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Loader2, Search, Filter, Mail, Clock, ChevronDown, ChevronUp } from 'lucide-react'
-import { toast } from 'sonner'
+import { useState, useEffect } from "react"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import {
+  Loader2,
+  Search,
+  Filter,
+  Mail,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  X,
+} from "lucide-react"
+import { toast } from "sonner"
 
-// Mock de dados
-const mockEmails = [
-  { id: '1', assunto: 'Confirmação de Pedido #12345', categoria: 'Produtivo', score: 3, conteudo: 'Prezado cliente, seu pedido foi confirmado e será enviado em breve...', created_at: new Date(Date.now() - 86400000).toISOString() },
-  { id: '2', assunto: 'Dúvida sobre o produto X', categoria: 'Improdutivo', score: 1, conteudo: 'Gostaria de saber se o produto X tem a cor azul...', created_at: new Date(Date.now() - 172800000).toISOString() },
-  { id: '3', assunto: 'Obrigado pelo feedback!', categoria: 'Produtivo', score: 2, conteudo: 'Recebemos seu feedback e agradecemos a sua contribuição...', created_at: new Date(Date.now() - 259200000).toISOString() },
-  { id: '4', assunto: 'Newsletter Semanal', categoria: 'Improdutivo', score: 3, conteudo: 'Confira as novidades da semana no nosso blog...', created_at: new Date(Date.now() - 345600000).toISOString() },
-]
-
-export default function EmailsPage() {
-  const [emails, setEmails] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [filterCategory, setFilterCategory] = useState('all')
-  const [filterScore, setFilterScore] = useState('all')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [expandedIds, setExpandedIds] = useState(new Set())
-
-  const fetchScores = async () => {
-    try {
-      const baseUrl = (import.meta as any).env?.VITE_API_URL ?? ''
-      const res = await fetch(`${baseUrl}/scores/`)
-      if (!res.ok) throw new Error("Falha ao carregar scores")
-
-      const data = await res.json()
-      return data.items   // array de { id, classificacao, created_at }
-    } catch (err) {
-      toast.error("Erro ao carregar scores do backend")
-      return []
-    }
-  }
-
-  useEffect(() => {
-    fetchAll()
-  }, [])
-
-const fetchAll = async () => {
-  setIsLoading(true)
-
-  // 1) buscar emails (por enquanto mock)
-  const emailList = mockEmails
-
-  // 2) buscar scores verdadeiros
-  const scores = await fetchScores()
-
-  // 3) associar score a cada email (exemplo: por categoria)
-  const updatedEmails = emailList.map(email => {
-    const sc = scores.find(s => s.id === email.score)
-    return {
-      ...email,
-      scoreLabel: sc ? sc.classificacao : "Sem score",
-    }
-  })
-
-  setEmails(updatedEmails)
-  setIsLoading(false)
+type EmailItem = {
+  id: string
+  assunto: string | null
+  conteudo: string | null
+  resposta: string | null
+  categoria_id: string | null
+  score_id: string | null
+  created_at: string
 }
 
-  const toggleExpand = (id) => {
-    setExpandedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
+type Category = {
+  id: string
+  nome: string
+  cor: string 
+}
 
-  const filteredEmails = emails.filter(email => {
-    const matchesCategory = filterCategory === 'all' || email.categoria === filterCategory
-    const matchesScore = filterScore === 'all' || Number(filterScore) === email.score
-    const matchesSearch = searchTerm === '' || 
-                          email.assunto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          email.conteudo.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesCategory && matchesScore && matchesSearch
-  })
+type Score = {
+  id: string
+  classificacao: string
+}
+
+export default function EmailsPage() {
+  const [emails, setEmails] = useState<EmailItem[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [scores, setScores] = useState<Score[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [filterScore, setFilterScore] = useState<string>("all")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [totalEmails, setTotalEmails] = useState<number>(0)
+
+  const baseUrl =
+    (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000"
+
+  const categoriesMap = categories.reduce<
+    Record<string, { nome: string; cor: string }>
+  >((acc, cat) => {
+    acc[cat.id] = { nome: cat.nome, cor: cat.cor }
+    return acc
+  }, {})
+
+  const scoresMap = scores.reduce<Record<string, string>>((acc, sc) => {
+    acc[sc.id] = sc.classificacao
+    return acc
+  }, {})
+
+  // -------- Helpers de cor --------
 
   const getScoreColor = (label: string) => {
     if (label === "Excelente")
@@ -93,48 +89,272 @@ const fetchAll = async () => {
     return "bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
   }
 
+  const renderCategoryBadge = (categoriaId?: string | null) => {
+    if (!categoriaId) return null
+    const cat = categoriesMap[categoriaId]
+    if (!cat) return null
+
+    return (
+      <span
+        className="px-2 py-0.5 rounded-full text-[11px] font-medium"
+        style={{ backgroundColor: cat.cor, color: '#fff' }}
+      >
+        {cat.nome}
+      </span>
+    )
+  }
+  const orderedCategories = [...categories].sort((a, b) => {
+    if (a.id === "7") return 1   // "Outros" vai para o fim
+    if (b.id === "7") return -1
+    return a.nome.localeCompare(b.nome)
+  })
+
+
+  // -------- Fetchers --------
+
+  const fetchCategories = async (): Promise<Category[]> => {
+    try {
+      const res = await fetch(`${baseUrl}/categories/`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.detail || "Falha ao carregar categorias")
+      }
+
+      const data = await res.json()
+      const items = Array.isArray(data) ? data : data.items ?? []
+
+      const mapped: Category[] = items.map((cat: any) => ({
+        id: String(cat.id),
+        nome: cat.nome,
+        cor: cat.cor ?? '#6366F1', // fallback se vier nulo
+      }))
+
+      setCategories(mapped)
+      return mapped
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Erro ao carregar categorias")
+      return []
+    }
+  }
+
+  const fetchScores = async (): Promise<Score[]> => {
+    try {
+      const res = await fetch(`${baseUrl}/scores/`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.detail || "Falha ao carregar scores")
+      }
+
+      const data = await res.json()
+      const items = Array.isArray(data) ? data : data.items ?? []
+
+      const mapped: Score[] = items.map((sc: any) => ({
+        id: String(sc.id),
+        classificacao: sc.classificacao,
+      }))
+
+      setScores(mapped)
+      return mapped
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Erro ao carregar scores do backend")
+      return []
+    }
+  }
+
+  const fetchEmails = async (): Promise<EmailItem[]> => {
+    try {
+      const params = new URLSearchParams({
+        page: "1",
+        page_size: "50",
+      })
+
+      const res = await fetch(`${baseUrl}/emails/?${params.toString()}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.detail || "Falha ao carregar e-mails")
+      }
+
+      const data = await res.json()
+      const items = Array.isArray(data) ? data : data.items ?? []
+
+      const mapped: EmailItem[] = items.map((item: any) => ({
+        id: String(item.id),
+        assunto: item.assunto ?? "",
+        conteudo: item.conteudo ?? "",
+        resposta: item.resposta ?? "",
+        categoria_id: item.categoria_id ?? null,
+        score_id: item.score_id ?? null,
+        created_at: item.created_at,
+      }))
+
+      setEmails(mapped)
+
+      const totalFromApi =
+        !Array.isArray(data) && typeof data.total === "number"
+          ? data.total
+          : mapped.length
+
+      setTotalEmails(totalFromApi)
+      return mapped
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Erro ao carregar e-mails")
+      return []
+    }
+  }
+
+  const fetchAll = async () => {
+    try {
+      setIsLoading(true)
+      await Promise.all([fetchCategories(), fetchScores(), fetchEmails()])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+
+  useEffect(() => {
+    fetchAll()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // -------- Interações --------
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // -------- Filtro --------
+
+  const filteredEmails = emails.filter((email) => {
+    const matchesCategory =
+      filterCategory === "all" ||
+      (email.categoria_id && email.categoria_id == filterCategory)
+
+    const matchesScore =
+      filterScore === "all" ||
+      (email.score_id && email.score_id == filterScore)
+
+    const assunto = (email.assunto ?? "").toLowerCase()
+    const conteudo = (email.conteudo ?? "").toLowerCase()
+    const resposta = (email.resposta ?? "").toLowerCase()
+    const term = searchTerm.toLowerCase()
+
+    const matchesSearch =
+      term === "" ||
+      assunto.includes(term) ||
+      conteudo.includes(term) ||
+      resposta.includes(term)
+
+    return matchesCategory && matchesScore && matchesSearch
+  })
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Listagem de E-mails</CardTitle>
-          <CardDescription>Visualize e filtre todos os e-mails processados pelo sistema.</CardDescription>
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>Listagem de E-mails</CardTitle>
+              <CardDescription className="mt-1">
+                Visualize e filtre todos os e-mails processados pelo sistema.
+              </CardDescription>
+            </div>
+
+            {/* bloco com contadores */}
+            <div className="text-xs sm:text-sm text-muted-foreground">
+              {filterCategory === "all" &&
+              filterScore === "all" &&
+              searchTerm.trim() === "" ? (
+                <>
+                  Total de e-mails:{" "}
+                  <span className="font-semibold text-foreground">
+                    {totalEmails}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Mostrando{" "}
+                  <span className="font-semibold text-foreground">
+                    {filteredEmails.length}
+                  </span>{" "}
+                  de{" "}
+                  <span className="font-semibold text-foreground">
+                    {totalEmails}
+                  </span>{" "}
+                  e-mails
+                </>
+              )}
+            </div>
+          </div>
         </CardHeader>
+
         <CardContent className="space-y-4">
           {/* Filtros */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Busca com botão de limpar */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por assunto ou conteúdo..."
-                className="pl-10"
+                placeholder="Buscar por assunto, conteúdo ou resposta..."
+                className="pl-10 pr-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Limpar busca"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
+
+            {/* Filtro categoria */}
+            <Select
+              value={filterCategory}
+              onValueChange={(value) => setFilterCategory(value)}
+            >
               <SelectTrigger className="w-full">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Filtrar por Categoria" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as Categorias</SelectItem>
-                <SelectItem value="Produtivo">Produtivo</SelectItem>
-                <SelectItem value="Improdutivo">Improdutivo</SelectItem>
+                {orderedCategories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            <Select value={filterScore} onValueChange={setFilterScore}>
+            {/* Filtro score */}
+            <Select
+              value={filterScore}
+              onValueChange={(value) => setFilterScore(value)}
+            >
               <SelectTrigger className="w-full">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Filtrar por Score" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os scores</SelectItem>
-                <SelectItem value="1">Insatisfatório</SelectItem>
-                <SelectItem value="2">Satisfatório</SelectItem>
-                <SelectItem value="3">Excelente</SelectItem>
+                {scores.map((sc) => (
+                  <SelectItem key={sc.id} value={sc.id}>
+                    {sc.classificacao}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -152,30 +372,55 @@ const fetchAll = async () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {filteredEmails.map(email => {
+              {filteredEmails.map((email) => {
                 const open = expandedIds.has(email.id)
-                const scoreColor = getScoreColor(email.scoreLabel)
-                
+
+                const scoreLabel = email.score_id
+                  ? scoresMap[email.score_id] ?? "Sem avaliação"
+                  : "Sem avaliação"
+
+                const scoreColor = getScoreColor(scoreLabel)
+
                 return (
-                  <Card key={email.id} className="border-border hover:shadow-md transition-shadow">
+                  <Card
+                    key={email.id}
+                    className="border-border hover:shadow-md transition-shadow"
+                  >
                     <button
                       onClick={() => toggleExpand(email.id)}
                       className="w-full text-left p-4 rounded-lg"
                     >
                       <div className="flex items-center justify-between">
                         <div className="min-w-0 flex-1 pr-4">
-                          <CardTitle className="text-base truncate">{email.assunto}</CardTitle>
-                          <div className="flex items-center space-x-3 mt-1 text-sm text-muted-foreground">
-                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${scoreColor}`}>
-                              {email.scoreLabel}
+                        <CardTitle
+                          className="text-base break-words whitespace-normal"
+                          style={{ maxHeight: '4.5rem', overflowY: 'auto' }} // opcional
+                          title={email.assunto || "Sem assunto"}
+                        >
+                          {email.assunto || "Sem assunto"}
+                        </CardTitle>
+
+                          <div className="flex items-center flex-wrap gap-2 mt-1 text-sm text-muted-foreground">
+                            {/* Score badge */}
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${scoreColor}`}
+                            >
+                              {scoreLabel}
                             </span>
-                            <span className="text-xs">{email.categoria}</span>
+
+                            {/* Categoria badge */}
+                            {renderCategoryBadge(email.categoria_id)}
+
+                            {/* Data */}
                             <span className="flex items-center text-xs">
                               <Clock className="w-3 h-3 mr-1" />
-                              {new Date(email.created_at).toLocaleDateString()}
+                              {new Date(
+                                email.created_at
+                              ).toLocaleString()}
                             </span>
                           </div>
                         </div>
+
                         {open ? (
                           <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" />
                         ) : (
@@ -183,16 +428,34 @@ const fetchAll = async () => {
                         )}
                       </div>
                     </button>
-                    
+
                     {open && (
                       <CardContent className="pt-0 border-t mt-2">
-                        <div className="mt-4 space-y-2">
-                          <p className="text-sm font-medium">Preview do Conteúdo:</p>
-                          <div className="p-3 bg-muted rounded-lg">
-                            <p className="text-sm line-clamp-3">{email.conteudo}</p>
+                        <div className="mt-4 space-y-4">
+                          {/* Conteúdo */}
+                          <div>
+                            <p className="text-sm font-medium mb-1">
+                              Conteúdo do E-mail
+                            </p>
+                            <div className="p-3 bg-muted rounded-lg">
+                              <pre className="text-sm whitespace-pre-wrap break-words font-sans">
+                                {email.conteudo || "-"}
+                              </pre>
+                            </div>
+                          </div>
+
+                          {/* Resposta */}
+                          <div>
+                            <p className="text-sm font-medium mb-1">
+                              Resposta gerada pela IA
+                            </p>
+                            <div className="p-3 bg-muted rounded-lg">
+                              <pre className="text-sm whitespace-pre-wrap break-words font-sans">
+                                {email.resposta || "-"}
+                              </pre>
+                            </div>
                           </div>
                         </div>
-                        {/* Aqui poderia ter mais detalhes ou ações */}
                       </CardContent>
                     )}
                   </Card>

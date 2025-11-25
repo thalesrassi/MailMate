@@ -4,9 +4,9 @@ import { useTheme } from '@/hooks/useTheme'
 
 const navItems = [
   { id: 'home', label: 'Início', icon: Mail },
-  { id: 'dashboard', label: 'Dashboards', icon: BarChart2 },
   { id: 'emails', label: 'E-mails', icon: ListFilter },
   { id: 'categories', label: 'Categorias', icon: FolderOpen },
+  { id: 'dashboard', label: 'Dashboards', icon: BarChart2 }
 ]
 
 interface NavbarProps {
