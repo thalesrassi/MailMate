@@ -1,9 +1,16 @@
+
 # Dockerfile para o Frontend (React + Vite)
 # Estágio 1: Build
 FROM node:20-alpine AS builder
 
 # Define o diretório de trabalho
 WORKDIR /app
+
+# Argumento para a URL da API
+ARG VITE_API_URL=https://mailmate-api.synaptha.com
+
+# Define como variável de ambiente para o Vite
+ENV VITE_API_URL=${VITE_API_URL}
 
 # Copia os arquivos de dependências
 COPY package*.json ./
@@ -31,4 +38,3 @@ EXPOSE 80
 
 # Inicia o nginx
 CMD ["nginx", "-g", "daemon off;"]
-

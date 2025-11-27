@@ -1,22 +1,28 @@
-version: '3.8'
 
 services:
   backend:
     build:
       context: ./implementacao-tecnica/backend
       dockerfile: Dockerfile
-    container_name: marques-backend
-    ports:
-      - "8000:8000"
+    container_name: mailmate-backend
+    networks:
+      - traefik-net
     env_file:
       - ./implementacao-tecnica/backend/.env
     environment:
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:80}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://mailmate.synaptha.com}
       - PORT=8000
     volumes:
       # Monta o código para desenvolvimento (opcional - remova em produção)
       - ./implementacao-tecnica/backend:/app
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # Host da API
+      - "traefik.http.routers.mailmate-backend.rule=Host(`mailmate-api.synaptha.com`)"
+      - "traefik.http.routers.mailmate-backend.entrypoints=https"
+      - "traefik.http.routers.mailmate-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.mailmate-backend.loadbalancer.server.port=8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -28,12 +34,21 @@ services:
     build:
       context: ./implementacao-tecnica/frontend
       dockerfile: Dockerfile
-    container_name: marques-frontend
-    ports:
-      - "80:80"
+      args:
+        - VITE_API_URL=${VITE_API_URL:-https://mailmate-api.synaptha.com}
+    container_name: mailmate-frontend
+    networks:
+      - traefik-net
     depends_on:
       - backend
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # Host do Frontend
+      - "traefik.http.routers.mailmate-frontend.rule=Host(`mailmate.synaptha.com`)"
+      - "traefik.http.routers.mailmate-frontend.entrypoints=https"
+      - "traefik.http.routers.mailmate-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.mailmate-frontend.loadbalancer.server.port=80"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
       interval: 30s
@@ -41,3 +56,6 @@ services:
       retries: 3
       start_period: 40s
 
+networks:
+  traefik-net:
+    external: true
