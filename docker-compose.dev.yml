@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./implementacao-tecnica/backend
+      dockerfile: Dockerfile
+    container_name: marques-backend-dev
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./implementacao-tecnica/backend/.env
+    environment:
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:80}
+      - PORT=8000
+    volumes:
+      # Monta o código para desenvolvimento com hot-reload
+      - ./implementacao-tecnica/backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./implementacao-tecnica/frontend
+      dockerfile: Dockerfile.dev
+    container_name: marques-frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      # Monta o código para desenvolvimento com hot-reload
+      - ./implementacao-tecnica/frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+

@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./implementacao-tecnica/backend
+      dockerfile: Dockerfile
+    container_name: marques-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./implementacao-tecnica/backend/.env
+    environment:
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:80}
+      - PORT=8000
+    volumes:
+      # Monta o código para desenvolvimento (opcional - remova em produção)
+      - ./implementacao-tecnica/backend:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./implementacao-tecnica/frontend
+      dockerfile: Dockerfile
+    container_name: marques-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
