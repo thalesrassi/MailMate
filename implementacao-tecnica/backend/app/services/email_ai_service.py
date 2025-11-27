@@ -24,19 +24,28 @@ def _get_client(settings: Settings) -> OpenAI:
 
 def fetch_categories_and_examples(
     supabase: Client,
+    user_id: str,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
     """
-    Busca todas as categorias e respectivos exemplos no Supabase.
+    Busca todas as categorias e respectivos exemplos NO CONTEXTO DO USUÁRIO.
     Retorna:
-      - lista de categorias
-      - dict { categoria_id: [exemplos...] }
+      - lista de categorias do usuário
+      - dict { categoria_id: [exemplos...] } apenas desse usuário
     """
-    cat_resp = supabase.table("categorias").select("id,nome,descricao").execute()
+    # Categorias pertencentes ao usuário
+    cat_resp = (
+        supabase.table("categorias")
+        .select("id,nome,descricao")
+        .eq("user_id", user_id)
+        .execute()
+    )
     categories = cat_resp.data or []
 
+    # Exemplos pertencentes ao usuário
     ex_resp = (
         supabase.table("examples")
-        .select("id,conteudo,resposta,categoria_id")
+        .select("id,conteudo,resposta,categoria_id,user_id")
+        .eq("user_id", user_id)
         .execute()
     )
     examples_raw = ex_resp.data or []
@@ -179,18 +188,27 @@ Você deve responder SEMPRE com um único JSON válido, no formato:
 def process_email_with_ai(
     conteudo_email: str,
     supabase: Client,
+    *,
+    user_id: str,
     settings: Optional[Settings] = None,
     model: str = "gpt-4.1-mini",
 ) -> Dict[str, Any]:
+    """
+    Processa o e-mail com IA usando SOMENTE categorias e exemplos do usuário.
+    """
 
     if settings is None:
         settings = get_settings()
 
     client = _get_client(settings)
 
-    categories, examples_by_category = fetch_categories_and_examples(supabase)
+    categories, examples_by_category = fetch_categories_and_examples(
+        supabase=supabase,
+        user_id=user_id,
+    )
+
     if not categories:
-        raise RuntimeError("Não há categorias cadastradas no banco.")
+        raise RuntimeError("Não há categorias cadastradas no banco para este usuário.")
 
     system_prompt = build_system_prompt(categories, examples_by_category)
 
@@ -222,11 +240,14 @@ def process_email_with_ai(
     try:
         data = json.loads(text)
     except json.JSONDecodeError as e:
-        raise RuntimeError(f"IA não retornou JSON válido: {e}\nConteúdo retornado: {text}")
+        raise RuntimeError(
+            f"IA não retornou JSON válido: {e}\nConteúdo retornado: {text}"
+        )
 
     for field in ["assunto", "resposta", "categoria_id"]:
         if field not in data or not isinstance(data[field], str):
             raise RuntimeError(f"Campo obrigatório ausente ou inválido: {field}")
 
     return data
+
 

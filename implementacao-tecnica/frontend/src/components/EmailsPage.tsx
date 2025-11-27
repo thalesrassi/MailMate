@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react"
 import { toast } from "sonner"
+import { useApi } from "@/lib/api"
 
 type EmailItem = {
   id: string
@@ -61,6 +62,7 @@ export default function EmailsPage() {
 
   const baseUrl =
     (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000"
+  const { apiFetch } = useApi()
 
   const categoriesMap = categories.reduce<
     Record<string, { nome: string; cor: string }>
@@ -114,7 +116,7 @@ export default function EmailsPage() {
 
   const fetchCategories = async (): Promise<Category[]> => {
     try {
-      const res = await fetch(`${baseUrl}/categories/`)
+      const res = await apiFetch("/categories/")
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.detail || "Falha ao carregar categorias")
@@ -140,7 +142,7 @@ export default function EmailsPage() {
 
   const fetchScores = async (): Promise<Score[]> => {
     try {
-      const res = await fetch(`${baseUrl}/scores/`)
+      const res = await apiFetch("/scores/")
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.detail || "Falha ao carregar scores")
@@ -170,7 +172,7 @@ export default function EmailsPage() {
         page_size: "50",
       })
 
-      const res = await fetch(`${baseUrl}/emails/?${params.toString()}`)
+      const res = await apiFetch(`/emails/?${params.toString()}`)
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.detail || "Falha ao carregar e-mails")

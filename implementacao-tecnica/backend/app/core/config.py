@@ -12,8 +12,11 @@ class Settings(BaseModel):
     openai_api_key: Optional[str] = None
     allowed_origins: list[str] = ["*"]
     port: int = 8000
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expires_minutes: int = 60 * 24  # 1 dia
 
-    class Config:
+    class Config:   
         arbitrary_types_allowed = True
 
 @lru_cache
@@ -34,4 +37,5 @@ def get_settings() -> Settings:
         openai_api_key=openai_api_key,
         allowed_origins=allowed_origins,
         port=int(os.getenv("PORT", "8000")),
+        jwt_secret_key=os.getenv("JWT_SECRET_KEY"),
     )
