@@ -10,19 +10,26 @@ import HomePage from "./components/HomePage";
 import DashboardPage from "./components/DashboardPage";
 import EmailsPage from "./components/EmailsPage";
 import CategoriesPage from "./components/CategoriesPage";
+import LoginPage from "@/components/LoginPage";
+import { useAuth } from "@/hooks/useAuth";
+import RegisterPage from "./components/RegisterPage";
+type AuthMode = "login" | "register"
+
+// Define os ids das páginas para segurança de type
+type PageId = "home" | "dashboard" | "emails" | "categories";
 
 function Router() {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState<PageId>("home");
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'home':
+      case "home":
         return <HomePage />;
-      case 'dashboard':
+      case "dashboard":
         return <DashboardPage />;
-      case 'emails':
+      case "emails":
         return <EmailsPage />;
-      case 'categories':
+      case "categories":
         return <CategoriesPage />;
       default:
         return <HomePage />;
@@ -39,25 +46,39 @@ function Router() {
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
+  const { isAuthenticated } = useAuth()
+  const [currentPage, setCurrentPage] = useState<PageId>("home")
+  const [authMode, setAuthMode] = useState<AuthMode>("login")
+
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        switchable
-      >
+      <ThemeProvider defaultTheme="light" switchable>
         <TooltipProvider>
           <Toaster />
-          <Router />
+
+          {isAuthenticated ? (
+            <Router
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+            />
+          ) : authMode === "login" ? (
+            <LoginPage
+              onLoginSuccess={() => setCurrentPage("home")}
+              onGoToRegister={() => setAuthMode("register")}
+            />
+          ) : (
+            <RegisterPage
+              onRegisterSuccess={() => {
+                setCurrentPage("home")
+              }}
+              onGoToLogin={() => setAuthMode("login")}
+            />
+          )}
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
-  );
+  )
 }
 
 export default App;

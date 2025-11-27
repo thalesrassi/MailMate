@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Upload, Send, Loader2, CheckCircle, ChevronDown, ChevronUp, Clock, XCircle, Copy as CopyIcon, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/useTheme'
+import { useApi } from '@/lib/api'
 
 type EmailResult = {
   id: string
@@ -51,6 +52,7 @@ export default function HomePage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [expandedIds, setExpandedIds] = useState(new Set()) // controle de “abrir/fechar” card
   const baseUrl = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:8000'
+  const { apiFetch } = useApi()
   // API desabilitada temporariamente — usar mock/localStorage
   const MOCK_MODE = true
   const { darkMode } = useTheme()
@@ -133,7 +135,7 @@ export default function HomePage() {
 
   async function loadCategories() {
     try {
-      const res = await fetch(`${baseUrl}/categories/`)
+      const res = await apiFetch("/categories/")
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.detail || 'Falha ao carregar categorias')
@@ -165,7 +167,7 @@ export default function HomePage() {
 
   async function loadScores() {
     try {
-      const res = await fetch(`${baseUrl}/scores/`)
+      const res = await apiFetch("/scores/")
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.detail || 'Falha ao carregar scores')
@@ -205,7 +207,7 @@ export default function HomePage() {
         page_size: "20",
       })
 
-      const res = await fetch(`${baseUrl}/emails/?${params.toString()}`)
+      const res = await apiFetch(`/emails/?${params.toString()}`)
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -241,8 +243,6 @@ export default function HomePage() {
   const callApi = async () => {
     setIsLoading(true)
     try {
-      const baseUrl = (import.meta as any).env.VITE_API_URL ?? "http://localhost:8000"
-
       const form = new FormData()
 
       if (inputMethod === "text") {
@@ -251,7 +251,7 @@ export default function HomePage() {
         form.append("file", uploadedFile)
       }
 
-      const res = await fetch(`${baseUrl}/emails/`, {
+      const res = await apiFetch("/emails/", {
         method: "POST",
         body: form,
       })
@@ -296,7 +296,7 @@ export default function HomePage() {
     try {
       setRatingEmailId(emailId)
 
-      const res = await fetch(`${baseUrl}/emails/${emailId}`, {
+      const res = await apiFetch(`/emails/${emailId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ score_id: scoreId }),

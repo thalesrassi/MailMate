@@ -1,13 +1,18 @@
 # app/api/routes/email.py
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
-from app.db.supabase import get_supabase_client
-from app.schemas.example import ExampleCreate, ExampleUpdate, ExampleOut, ExampleList
-from app.utils.text_processing import basic_clean, guess_and_extract
+
 from supabase import Client
 from postgrest.exceptions import APIError as PostgrestAPIError
 
+from app.db.supabase import get_supabase_client
+from app.deps.auth import get_current_user
+from app.schemas.user import UserOut
+from app.schemas.example import ExampleCreate, ExampleOut, ExampleList
+from app.utils.text_processing import basic_clean
+
 router = APIRouter(prefix="/examples", tags=["examples"])
+
 
 @router.get("/", response_model=ExampleList)
 def list_examples(
@@ -15,11 +20,17 @@ def list_examples(
     page_size: int = Query(10, ge=1, le=100),
     categoria_id: Optional[str] = None,
     supabase: Client = Depends(get_supabase_client),
+    current_user: UserOut = Depends(get_current_user),
 ):
     from_ = (page - 1) * page_size
     to = from_ + page_size - 1
 
-    query = supabase.table("examples").select("*", count="exact").order("created_at", desc=True)
+    query = (
+        supabase.table("examples")
+        .select("*", count="exact")
+        .eq("user_id", current_user.id)
+        .order("created_at", desc=True)
+    )
 
     if categoria_id:
         query = query.eq("categoria_id", categoria_id)
@@ -31,7 +42,6 @@ def list_examples(
         raise HTTPException(status_code=500, detail=str(e))
 
     data = resp.data or []
-  
     total = resp.count or len(data)
 
     items = [ExampleOut(**item) for item in data]
@@ -40,10 +50,23 @@ def list_examples(
 
 
 @router.get("/{example_id}", response_model=ExampleOut)
-def get_email(example_id: str, supabase: Client = Depends(get_supabase_client)):
-    resp = supabase.table("examples").select("*").eq("id", example_id).single().execute()
-    if resp.error:
+def get_email(
+    example_id: str,
+    supabase: Client = Depends(get_supabase_client),
+    current_user: UserOut = Depends(get_current_user),
+):
+    resp = (
+        supabase.table("examples")
+        .select("*")
+        .eq("id", example_id)
+        .eq("user_id", current_user.id)
+        .single()
+        .execute()
+    )
+
+    if not resp.data:
         raise HTTPException(status_code=404, detail="E-mail não encontrado")
+
     return ExampleOut(**resp.data)
 
 
@@ -51,16 +74,39 @@ def get_email(example_id: str, supabase: Client = Depends(get_supabase_client)):
 def create_example(
     payload: ExampleCreate,
     supabase: Client = Depends(get_supabase_client),
+    current_user: UserOut = Depends(get_current_user),
 ):
     data = payload.dict()
     data["conteudo"] = basic_clean(data["conteudo"])
+    data["user_id"] = current_user.id
 
     resp = supabase.table("examples").insert(data).execute()
+
+    if not resp.data:
+        raise HTTPException(status_code=500, detail="Falha ao criar exemplo")
 
     return ExampleOut(**resp.data[0])
 
 
-
 @router.delete("/{example_id}", status_code=204)
-def delete_email(example_id: str, supabase: Client = Depends(get_supabase_client)):
-    resp = supabase.table("examples").delete().eq("id", example_id).execute()
+def delete_email(
+    example_id: str,
+    supabase: Client = Depends(get_supabase_client),
+    current_user: UserOut = Depends(get_current_user),
+):
+    resp = (
+        supabase.table("examples")
+        .delete()
+        .eq("id", example_id)
+        .eq("user_id", current_user.id)   # 🔒 só apaga se for dele
+        .execute()
+    )
+
+    # Se RLS estiver ativo, resp.data pode ser [] silenciosamente
+    if resp.data == []:
+        raise HTTPException(
+            status_code=404,
+            detail="E-mail não encontrado ou não pertence ao usuário",
+        )
+
+    return None

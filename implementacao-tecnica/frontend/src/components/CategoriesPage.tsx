@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { IconButtonWithTooltip } from './IconButtonWithTooltip'
+import { useApi } from "@/lib/api"
 
 type Example = {
   id: string
@@ -51,6 +52,7 @@ export default function CategoriesPage() {
   const [editDescription, setEditDescription] = useState('')
 
   const baseUrl = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:8000'
+  const { apiFetch } = useApi()
 
   const toggleExampleExpand = (id: string) => {
     setExpandedExamples(prev => ({
@@ -79,8 +81,8 @@ export default function CategoriesPage() {
   }, [selectedCategory])
 
   const fetchCategoryExamples = async (categoryId: string): Promise<Example[]> => {
-    const url = `${baseUrl}/examples/?categoria_id=${encodeURIComponent(categoryId)}`
-    const res = await fetch(url)
+    const url = `/examples/?categoria_id=${encodeURIComponent(categoryId)}`
+    const res = await apiFetch(url)
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
@@ -106,7 +108,7 @@ export default function CategoriesPage() {
     try {
       setIsLoading(true)
 
-      const res = await fetch(`${baseUrl}/categories/`)
+      const res = await apiFetch("/categories/")
       if (!res.ok) {
         throw new Error('Falha ao carregar categorias')
       }
@@ -167,7 +169,7 @@ export default function CategoriesPage() {
     }
     try {
       setIsLoading(true)
-      const res = await fetch(`${baseUrl}/categories/`, {
+      const res = await apiFetch("/categories/", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: newCategoryName.trim(), descricao: newCategoryDescription.trim() }),
@@ -213,7 +215,7 @@ export default function CategoriesPage() {
     try {
       setIsLoading(true)
 
-      const res = await fetch(`${baseUrl}/examples/`, {
+      const res = await apiFetch("/examples/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -269,7 +271,7 @@ export default function CategoriesPage() {
     try {
       setIsLoading(true)
 
-      const res = await fetch(`${baseUrl}/categories/${categoryId}`, {
+      const res = await apiFetch(`/categories/${categoryId}`, {
         method: "DELETE",
       })
 
@@ -298,7 +300,7 @@ export default function CategoriesPage() {
     try {
       setIsLoading(true)
 
-      const res = await fetch(`${baseUrl}/examples/${exampleId}`, {
+      const res = await apiFetch(`/examples/${exampleId}`, {
         method: "DELETE",
       })
 
@@ -320,7 +322,7 @@ export default function CategoriesPage() {
       setSelectedCategory((prev) =>
         prev
           ? { ...prev, examples: prev.examples.filter((ex) => ex.id !== exampleId) }
-          : prev
+        : prev
       )
 
       toast.info("Exemplo removido.")
@@ -341,7 +343,7 @@ export default function CategoriesPage() {
     }
     try {
       setIsLoading(true)
-      const res = await fetch(`${baseUrl}/categories/${selectedCategory.id}`, {
+      const res = await apiFetch(`/categories/${selectedCategory.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: editName.trim(), descricao: editDescription.trim() }),
