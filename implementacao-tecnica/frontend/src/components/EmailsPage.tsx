@@ -24,7 +24,20 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  Trash2, // ⬅ novo
 } from "lucide-react"
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
 import { toast } from "sonner"
 import { useApi } from "@/lib/api"
 
@@ -59,6 +72,9 @@ export default function EmailsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [totalEmails, setTotalEmails] = useState<number>(0)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [emailToDelete, setEmailToDelete] = useState<EmailItem | null>(null)
+
 
   const baseUrl =
     (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000"
@@ -215,6 +231,40 @@ export default function EmailsPage() {
       setIsLoading(false)
     }
   }
+
+  const handleDeleteEmail = async () => {
+    if (!emailToDelete) return
+
+    const emailId = emailToDelete.id
+
+    try {
+      setIsLoading(true)
+
+      const res = await apiFetch(`/emails/${emailId}`, {
+        method: "DELETE",
+      })
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.detail || "Falha ao excluir e-mail")
+      }
+
+      // Remove do estado
+      setEmails((prev) => prev.filter((e) => e.id !== emailId))
+      setTotalEmails((prev) => Math.max(prev - 1, 0))
+
+      toast.success("E-mail excluído com sucesso!")
+    } catch (err: any) {
+      console.error(err)
+    toast.error(err.message || "Erro ao excluir e-mail")
+  } finally {
+    setIsLoading(false)
+    setDeleteOpen(false)
+    setEmailToDelete(null)
+  }
+}
+
+
 
 
   useEffect(() => {
@@ -388,57 +438,75 @@ export default function EmailsPage() {
                     key={email.id}
                     className="border-border hover:shadow-md transition-shadow"
                   >
-                    <button
-                      onClick={() => toggleExpand(email.id)}
-                      className="w-full text-left p-4 rounded-lg"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1 pr-4">
-                        <CardTitle
-                          className="text-base break-words whitespace-normal"
-                          style={{ maxHeight: '4.5rem', overflowY: 'auto' }} // opcional
-                          title={email.assunto || "Sem assunto"}
-                        >
-                          {email.assunto || "Sem assunto"}
-                        </CardTitle>
-
-                          <div className="flex items-center flex-wrap gap-2 mt-1 text-sm text-muted-foreground">
-                            {/* Score badge */}
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${scoreColor}`}
+                    {/* Cabeçalho: expand + botão apagar */}
+                    <div className="flex items-center justify-between gap-2 p-4">
+                      {/* Botão que abre/fecha o conteúdo */}
+                      <button
+                        onClick={() => toggleExpand(email.id)}
+                        className="flex-1 text-left rounded-lg"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="min-w-0 flex-1 pr-4">
+                            <CardTitle
+                              className="text-base break-words whitespace-normal"
+                              style={{ maxHeight: "4.5rem", overflowY: "auto" }}
+                              title={email.assunto || "Sem assunto"}
                             >
-                              {scoreLabel}
-                            </span>
+                              {email.assunto || "Sem assunto"}
+                            </CardTitle>
 
-                            {/* Categoria badge */}
-                            {renderCategoryBadge(email.categoria_id)}
+                            <div className="flex items-center flex-wrap gap-2 mt-1 text-sm text-muted-foreground">
+                              {/* Score badge */}
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${scoreColor}`}
+                              >
+                                {scoreLabel}
+                              </span>
 
-                            {/* Data */}
-                            <span className="flex items-center text-xs">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {new Date(
-                                email.created_at
-                              ).toLocaleString()}
-                            </span>
+                              {/* Categoria badge */}
+                              {renderCategoryBadge(email.categoria_id)}
+
+                              {/* Data */}
+                              <span className="flex items-center text-xs">
+                                <Clock className="w-3 h-3 mr-1" />
+                                {new Date(email.created_at).toLocaleString()}
+                              </span>
+                            </div>
                           </div>
+
+                          {open ? (
+                            <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
+                          )}
+                          
+
                         </div>
+                      </button>
 
-                        {open ? (
-                          <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
-                        )}
-                      </div>
-                    </button>
+                      {/* Botão de excluir (abre o AlertDialog) */}
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation() // não dispara o toggleExpand
+                          setEmailToDelete(email)
+                          setDeleteOpen(true)
+                        }}
+                        aria-label="Excluir e-mail"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </div>
 
+                    {/* Corpo expandido */}
                     {open && (
                       <CardContent className="pt-0 border-t mt-2">
                         <div className="mt-4 space-y-4">
-                          {/* Conteúdo */}
                           <div>
-                            <p className="text-sm font-medium mb-1">
-                              Conteúdo do E-mail
-                            </p>
+                            <p className="text-sm font-medium mb-1">Conteúdo do E-mail</p>
                             <div className="p-3 bg-muted rounded-lg">
                               <pre className="text-sm whitespace-pre-wrap break-words font-sans">
                                 {email.conteudo || "-"}
@@ -446,7 +514,6 @@ export default function EmailsPage() {
                             </div>
                           </div>
 
-                          {/* Resposta */}
                           <div>
                             <p className="text-sm font-medium mb-1">
                               Resposta gerada pela IA
@@ -462,9 +529,44 @@ export default function EmailsPage() {
                     )}
                   </Card>
                 )
+
               })}
             </div>
           )}
+          <AlertDialog
+            open={deleteOpen}
+            onOpenChange={(open) => {
+              setDeleteOpen(open)
+              if (!open) setEmailToDelete(null)
+            }}
+          >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir e-mail?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação é permanente e removerá o e-mail{" "}
+                <span className="font-semibold">
+                  {emailToDelete?.assunto || "sem assunto"}
+                </span>{" "}
+                do histórico.
+                <br />
+                <br />
+                Deseja realmente continuar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleDeleteEmail}
+                disabled={isLoading}
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         </CardContent>
       </Card>
     </div>
