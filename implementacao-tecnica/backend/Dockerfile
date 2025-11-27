@@ -7,6 +7,7 @@ WORKDIR /app
 # Instala dependências do sistema
 RUN apt-get update && apt-get install -y \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia o arquivo de dependências
@@ -23,4 +24,3 @@ EXPOSE 8000
 
 # Comando para iniciar a aplicação com uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
