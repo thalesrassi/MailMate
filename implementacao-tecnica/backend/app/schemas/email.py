@@ -4,7 +4,7 @@ from typing import Optional
 
 
 class EmailBase(BaseModel):
-    conteudo: str = Field(..., min_length=1, max_length=20000)
+    conteudo: str
     assunto: Optional[str] = None
     resposta: Optional[str] = None
     categoria_id: Optional[int] = None
@@ -16,7 +16,7 @@ class EmailCreate(EmailBase):
 
 
 class EmailUpdate(BaseModel):
-    conteudo: Optional[str] = Field(None, max_length=20000)
+    conteudo: Optional[str] = None
     assunto: Optional[str] = None
     resposta: Optional[str] = None
     categoria_id: Optional[int] = None
