@@ -79,39 +79,62 @@
 }
 
 .dark {
-  --primary: #9c2279;
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: #9c2279;
+  /* Roxo principal um pouco mais vibrante no dark */
+  --primary: #b1358c;
+  --primary-foreground: var(--color-slate-50);
+
+  --sidebar-primary: #b1358c;
+  --sidebar-primary-foreground: var(--color-slate-50);
+
+  /* Fundo geral bem escuro e neutro (quase preto, levemente roxo) */
+  --background: oklch(0.16 0.03 285);           /* ~#0f1015 */
+  --foreground: oklch(0.93 0.02 270);           /* texto principal bem legível */
+
+  /* Cards um pouco acima do fundo (efeito “cartão”) */
+  --card: oklch(0.20 0.03 285);                 /* ~#181924 */
+  --card-foreground: var(--foreground);
+
+  /* Popover segue card */
+  --popover: oklch(0.20 0.03 285);
+  --popover-foreground: var(--foreground);
+
+  /* Botões secundários / superfícies levemente elevadas */
+  --secondary: oklch(0.27 0.03 285);            /* ~#242733 */
+  --secondary-foreground: oklch(0.86 0.02 270);
+
+  /* Áreas muted (inputs, chips neutros, etc.) */
+  --muted: oklch(0.24 0.02 285);                /* ~#1f2230 */
+  --muted-foreground: oklch(0.78 0.03 280);     /* cinza claro para textos menores */
+
+  /* Accent para hovers, badges suaves etc. */
+  --accent: oklch(0.30 0.03 285);               /* ~#2a3040 */
+  --accent-foreground: oklch(0.94 0.02 270);
+
+  /* Erro mais “dark mode friendly” */
+  --destructive: oklch(0.55 0.18 25);           /* vermelho mais fechado */
+  --destructive-foreground: oklch(0.98 0 0);
+
+  /* Bordas e inputs com contraste sutil */
+  --border: oklch(0.32 0.02 285);               /* ~#35384a */
+  --input: oklch(0.32 0.02 285);
+  --ring: #b1358c;                              /* roxo para foco */
+
+  /* Cores de charts – mantém consistência com o light */
   --chart-1: var(--color-blue-300);
   --chart-2: var(--color-blue-500);
   --chart-3: var(--color-blue-600);
   --chart-4: var(--color-blue-700);
   --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+
+  /* Sidebar alinhada com os cards */
+  --sidebar: oklch(0.20 0.03 285);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-accent: oklch(0.27 0.03 285);
+  --sidebar-accent-foreground: oklch(0.96 0.02 270);
+  --sidebar-border: oklch(0.32 0.02 285);
+  --sidebar-ring: oklch(0.60 0.20 275);
 }
+
 
 @layer base {
   * {
