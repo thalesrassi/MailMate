@@ -460,6 +460,7 @@ export default function HomePage() {
                     variant={inputMethod === 'text' ? 'default' : 'outline'}
                     onClick={() => setInputMethod('text')}
                     className="flex-1 cursor-pointer"
+                    aria-label="Selecionar entrada por texto"
                   >
                     Texto
                   </Button>
@@ -467,6 +468,7 @@ export default function HomePage() {
                     variant={inputMethod === 'file' ? 'default' : 'outline'}
                     onClick={() => setInputMethod('file')}
                     className="flex-1 cursor-pointer"
+                    aria-label="Selecionar envio por arquivo"
                   >
                     Upload de Arquivo
                   </Button>

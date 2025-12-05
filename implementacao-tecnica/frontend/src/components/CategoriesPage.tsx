@@ -492,6 +492,7 @@ export default function CategoriesPage() {
                           onClick={handleSaveCategory}
                           disabled={isLoading}
                           tooltip="Salvar alterações"
+                          aria-label="Salvar alterações"
                         >
                           {isLoading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -507,6 +508,7 @@ export default function CategoriesPage() {
                           onClick={handleCancelEdit}
                           disabled={isLoading}
                           tooltip="Cancelar edição"
+                          aria-label="Cancelar edição"
                         >
                           <X className="w-4 h-4" />
                         </IconButtonWithTooltip>
@@ -518,6 +520,7 @@ export default function CategoriesPage() {
                           size="icon"
                           variant="outline"
                           onClick={() => setEditMode(true)}
+                          aria-label="Editar categoria"
                           tooltip="Editar categoria"
                         >
                           <Edit className="w-4 h-4" />
@@ -529,6 +532,7 @@ export default function CategoriesPage() {
                           variant="outline"
                           onClick={() => setDeleteOpen(true)}
                           className="text-red-500 hover:text-red-700"
+                          aria-label="Excluir categoria"
                           tooltip="Excluir categoria"
                         >
                           <Trash2 className="w-4 h-4" />
