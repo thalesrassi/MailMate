@@ -1,0 +1,4 @@
+Após o teste de usabilidade correções pertinentes foram implementadas: Pop up de ajuda para a criação de categorias ao entrar pela primeira vez e renomeação de labels, vídeo demonstrativo consta no Drive.
+
+Solicitar acesso ao proprietário da pasta Thales Rassi Porto de Matos.
+Link: https://drive.google.com/drive/folders/1RLCcs-vj_AJq5BoYj0tcnWdPr0PCG6bK?usp=sharing
