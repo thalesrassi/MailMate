@@ -9,6 +9,16 @@ import { Upload, Send, Loader2, CheckCircle, ChevronDown, ChevronUp, Clock, XCir
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/useTheme'
 import { useApi } from '@/lib/api'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog"
+
 
 type EmailResult = {
   id: string
@@ -56,6 +66,7 @@ export default function HomePage() {
   // API desabilitada temporariamente — usar mock/localStorage
   const MOCK_MODE = true
   const { darkMode } = useTheme()
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false)
 
 
   const palette = [
@@ -156,6 +167,12 @@ export default function HomePage() {
       })
 
       setCategoriesMap(map)
+
+      if (Object.keys(map).length === 0) {
+        setShowWelcomeDialog(true)
+      } else {
+        setShowWelcomeDialog(false)
+      }
     } catch (e: any) {
       console.error(e)
       toast(e.message || 'Falha ao carregar categorias', {
@@ -830,6 +847,34 @@ export default function HomePage() {
         </Card>
       </div>
 
+    <AlertDialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Bem-vindo ao MailMate 👋</AlertDialogTitle>
+          <AlertDialogDescription className="space-y-2">
+            <p>
+              Para começar a usar a automação de e-mails, você precisa criar
+              pelo menos uma categoria.
+            </p>
+            <p>
+              As categorias organizam os tipos de e-mails que você recebe e
+              ajudam a IA a responder de forma mais precisa, de acordo com o
+              contexto do seu trabalho.
+            </p>
+            <p>
+              Acesse o menu <span className="font-semibold">"Categorias"</span> no topo da tela
+              e cadastre suas primeiras categorias antes de enviar um e-mail para análise.
+            </p>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogFooter>
+          <AlertDialogAction onClick={() => setShowWelcomeDialog(false)}>
+            Entendi
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     </div>
   )
