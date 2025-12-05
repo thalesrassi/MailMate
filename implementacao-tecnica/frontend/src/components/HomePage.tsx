@@ -523,7 +523,7 @@ export default function HomePage() {
                       Processando...
                     </>
                   ) : (
-                    'Gerar E-mail'
+                    'Gerar Resposta'
                   )}
                 </Button>
               </CardContent>
@@ -848,33 +848,33 @@ export default function HomePage() {
       </div>
 
     <AlertDialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Bem-vindo ao MailMate 👋</AlertDialogTitle>
-          <AlertDialogDescription className="space-y-2">
-            <p>
-              Para começar a usar a automação de e-mails, você precisa criar
-              pelo menos uma categoria.
-            </p>
-            <p>
-              As categorias organizam os tipos de e-mails que você recebe e
-              ajudam a IA a responder de forma mais precisa, de acordo com o
-              contexto do seu trabalho.
-            </p>
-            <p>
-              Acesse o menu <span className="font-semibold">"Categorias"</span> no topo da tela
-              e cadastre suas primeiras categorias antes de enviar um e-mail para análise.
-            </p>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Bem-vindo ao MailMate 👋</AlertDialogTitle>
+        <AlertDialogDescription className="space-y-2">
+          <p>
+            Para começar a usar a automação de e-mails, você precisa criar
+            pelo menos uma categoria.
+          </p>
+          <p>
+            As categorias organizam os tipos de e-mails que você recebe e
+            ajudam a IA a responder de forma mais precisa, de acordo com o
+            contexto do seu trabalho.
+          </p>
+          <p>
+            Acesse o menu <span className="font-semibold">"Categorias"</span> no topo da tela
+            e cadastre suas primeiras categorias antes de enviar um e-mail para análise.
+          </p>
+        </AlertDialogDescription>
+      </AlertDialogHeader>
 
-        <AlertDialogFooter>
-          <AlertDialogAction onClick={() => setShowWelcomeDialog(false)}>
-            Entendi
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <AlertDialogFooter>
+        <AlertDialogAction onClick={() => setShowWelcomeDialog(false)}>
+          Entendi
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 
     </div>
   )
