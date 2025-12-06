@@ -1,4 +1,20 @@
-Após o teste de usabilidade correções pertinentes foram implementadas: Pop up de ajuda para a criação de categorias ao entrar pela primeira vez e renomeação de labels, vídeo demonstrativo consta no Drive.
-
+Descrição da estrutura do código:
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+O código-fonte do projeto está organizado dentro da pasta “implementação técnica”, que é dividida em duas subpastas principais: 		back-end e front-end.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Back-end:
+Desenvolvido em Python, utilizando o framework FastAPI.
+Essa parte do sistema concentra toda a lógica da aplicação, incluindo:
+-Comunicação com o banco de dados;
+-Regras de negócio relacionadas à criação e gerenciamento de e-mails e categorias;
+-Gerenciamento de conversas e requisições com as APIs de Inteligência Artificial integradas.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Front-end:
+Desenvolvido em React, é responsável pela interface do usuário.
+Nessa parte estão implementadas as funcionalidades de navegação, as variações de tema e toda a camada visual e interativa do sistema.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Além disso, tanto o back-end quanto o front-end possuem um arquivo de instruções em formato Markdown (.md), detalhando os passos necessários para executar o projeto localmente, incluindo dependências, configurações e comandos de inicialização.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Pastas com demonstrações dos testes de acessibilidade e usabilidade estão disponíveis no drive.
 Solicitar acesso ao proprietário da pasta Thales Rassi Porto de Matos.
 Link: https://drive.google.com/drive/folders/1RLCcs-vj_AJq5BoYj0tcnWdPr0PCG6bK?usp=sharing
