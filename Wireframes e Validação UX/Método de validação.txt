@@ -1,0 +1,21 @@
+--> Validação do Wireframe
+
+O método de validação utilizado foi o Walkthrough, que consiste em apresentar o wireframe passo a passo aos usuários, simulando o uso real da interface para coletar percepções sobre a estrutura, usabilidade e clareza visual do sistema.
+
+Para essa etapa, foram selecionados dois usuários representativos do público-alvo, que participaram individualmente da validação e forneceram feedback qualitativo.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--> Feedback dos participantes
+
+Usuário 1:
+Destacou que o design estava limpo, bem organizado e visualmente agradável, especialmente no modo claro, cuja paleta de cores foi considerada equilibrada.
+Entretanto, observou a ausência do modo escuro no wireframe, mencionando que prefere utilizar interfaces com esse tema e sentiu falta dessa opção.
+Sugeriu também que o wireframe incluísse representações das outras abas do sistema e recomendou a adição de um botão de ajuda ou tutorial guiado, visível logo na tela inicial, para facilitar o entendimento das funcionalidades.
+
+Usuário 2:
+Reforçou o comentário sobre a falta de visualização do modo escuro, mas considerou a interface intuitiva e de fácil compreensão.
+Elogiou especialmente a organização da barra de navegação superior e a disposição geral dos elementos na tela.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--> Ajustes realizados
+
+Com base nos comentários recebidos, foi gerado um novo wireframe em modo escuro (dark mode), de forma a contemplar as preferências dos usuários e oferecer uma experiência mais completa para validação futura.
+Outras sugestões, como o tutorial inicial e a expansão das telas representadas, foram registradas para desenvolvimento nas próximas iterações do projeto.
